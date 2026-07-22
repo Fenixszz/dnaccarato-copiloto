@@ -15,7 +15,8 @@
     "check": "npm run lint && npm run typecheck && npm run test && npm run build",
     "prepare": "husky",
     "seed": "tsx --env-file=.env.local scripts/seed.ts",
-    "db:types": "npx supabase gen types typescript --linked > lib/db/types.ts"
+    "db:types": "npx supabase gen types typescript --linked > lib/db/types.ts",
+    "drive:watch": "tsx --env-file=.env.local scripts/configurar-drive-watch.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",

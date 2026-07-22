@@ -91,6 +91,7 @@ export type Database = {
           status: string;
           assinado_em: string | null;
           link_drive: string | null;
+          referencia_externa: string | null;
           criado_em: string;
           atualizado_em: string;
         };
@@ -101,6 +102,7 @@ export type Database = {
           status?: string;
           assinado_em?: string | null;
           link_drive?: string | null;
+          referencia_externa?: string | null;
           criado_em?: string;
           atualizado_em?: string;
         };
@@ -111,6 +113,7 @@ export type Database = {
           status?: string;
           assinado_em?: string | null;
           link_drive?: string | null;
+          referencia_externa?: string | null;
           criado_em?: string;
           atualizado_em?: string;
         };
