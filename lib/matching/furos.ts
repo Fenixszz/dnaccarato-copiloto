@@ -15,7 +15,11 @@ export const DIAS_TASK_PARADA = 7;
 // ---------------------------------------------------------------------------
 
 export type TipoDeFuro =
-  "pagou_sem_contrato_assinado" | "assinou_sem_reuniao" | "formulario_sem_followup" | "task_parada";
+  | "pagamento_atrasado"
+  | "pagou_sem_contrato_assinado"
+  | "assinou_sem_reuniao"
+  | "formulario_sem_followup"
+  | "task_parada";
 
 export type Furo = {
   tipo: TipoDeFuro;
@@ -23,7 +27,7 @@ export type Furo = {
 };
 
 export type DadosParaFuros = {
-  pagamentos: Array<{ status: string }>;
+  pagamentos: Array<{ status: string; valor: number; vencimento: string | null }>;
   documentos: Array<{ tipo: string; status: string }>;
   formularios: Array<{ formulario_nome: string; respondido_em: string | null }>;
   reunioes: Array<{ status: string; data_hora: string }>;
@@ -40,6 +44,24 @@ function diasEntre(inicio: Date, fim: Date): number {
 // ser testável) e devolve a lista de furos.
 export function avaliarFuros(dados: DadosParaFuros, agora: Date): Furo[] {
   const furos: Furo[] = [];
+  const dataDeHoje = agora.toISOString().slice(0, 10);
+
+  // 0. Pagamento atrasado: não pago com vencimento anterior a hoje. Vem
+  //    primeiro de propósito — é o furo mais urgente na priorização.
+  for (const pagamento of dados.pagamentos) {
+    if (pagamentoEstaPago(pagamento.status) || !pagamento.vencimento) {
+      continue;
+    }
+    if (pagamento.vencimento >= dataDeHoje) {
+      continue;
+    }
+    const diasDeAtraso = Math.floor(diasEntre(new Date(pagamento.vencimento), agora));
+    const valor = `R$ ${pagamento.valor.toFixed(2).replace(".", ",")}`;
+    furos.push({
+      tipo: "pagamento_atrasado",
+      detalhe: `pagamento de ${valor} vencido há ${diasDeAtraso} dias`,
+    });
+  }
 
   // 1. Pagou mas não assinou contrato.
   const pagou = dados.pagamentos.some((pagamento) => pagamentoEstaPago(pagamento.status));
@@ -113,7 +135,7 @@ export async function detectarFuros(alunaId: string): Promise<Furo[]> {
     .from("alunas")
     .select(
       `id,
-       pagamentos ( status ),
+       pagamentos ( status, valor, vencimento ),
        documentos ( tipo, status ),
        formularios ( formulario_nome, respondido_em ),
        reunioes ( status, data_hora ),

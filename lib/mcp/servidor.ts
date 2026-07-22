@@ -229,7 +229,7 @@ export function criarServidorMcp(token: TokenMcp): McpServer {
       {
         title: "Detectar furos operacionais",
         description:
-          "Sinaliza inconsistências da aluna: pagou sem contrato assinado, assinou sem reunião marcada, formulário sem follow-up, task do Asana parada.",
+          "Sinaliza inconsistências da aluna: pagamento atrasado, pagou sem contrato assinado, assinou sem reunião marcada, formulário sem follow-up, task do Asana parada.",
         inputSchema: {
           aluna_id: z.uuid().describe("Id (UUID) da aluna — use listar_alunas pra descobrir"),
         },

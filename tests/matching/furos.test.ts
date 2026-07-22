@@ -18,11 +18,38 @@ function semDados(): DadosParaFuros {
 }
 
 describe("avaliarFuros — cada furo isolado", () => {
+  it("pagamento não pago e vencido é furo de atraso, com valor e dias", () => {
+    const furos = avaliarFuros(
+      {
+        ...semDados(),
+        pagamentos: [{ status: "pendente", valor: 1200, vencimento: diasAtras(10).slice(0, 10) }],
+      },
+      AGORA
+    );
+    expect(furos).toEqual([
+      expect.objectContaining({
+        tipo: "pagamento_atrasado",
+        detalhe: "pagamento de R$ 1200,00 vencido há 10 dias",
+      }),
+    ]);
+  });
+
+  it("pagamento pendente com vencimento futuro não é atraso", () => {
+    const furos = avaliarFuros(
+      {
+        ...semDados(),
+        pagamentos: [{ status: "pendente", valor: 1200, vencimento: diasAtras(-5).slice(0, 10) }],
+      },
+      AGORA
+    );
+    expect(furos).toEqual([]);
+  });
+
   it("pagou mas não assinou contrato", () => {
     const furos = avaliarFuros(
       {
         ...semDados(),
-        pagamentos: [{ status: "CONFIRMED" }],
+        pagamentos: [{ status: "CONFIRMED", valor: 1200, vencimento: null }],
         documentos: [{ tipo: "Contrato", status: "pendente" }],
       },
       AGORA
@@ -34,7 +61,7 @@ describe("avaliarFuros — cada furo isolado", () => {
     const furos = avaliarFuros(
       {
         ...semDados(),
-        pagamentos: [{ status: "pago" }],
+        pagamentos: [{ status: "pago", valor: 1200, vencimento: null }],
         documentos: [{ tipo: "Contrato", status: "assinado" }],
         reunioes: [{ status: "agendada", data_hora: diasAtras(-2) }],
       },
@@ -44,7 +71,10 @@ describe("avaliarFuros — cada furo isolado", () => {
   });
 
   it("pagamento pendente não dispara furo de contrato", () => {
-    const furos = avaliarFuros({ ...semDados(), pagamentos: [{ status: "pendente" }] }, AGORA);
+    const furos = avaliarFuros(
+      { ...semDados(), pagamentos: [{ status: "pendente", valor: 1200, vencimento: null }] },
+      AGORA
+    );
     expect(furos).toEqual([]);
   });
 
@@ -178,7 +208,7 @@ describe("avaliarFuros — cenários combinados", () => {
   it("aluna em dia com tudo: nenhum furo", () => {
     const furos = avaliarFuros(
       {
-        pagamentos: [{ status: "pago" }],
+        pagamentos: [{ status: "pago", valor: 1200, vencimento: null }],
         documentos: [{ tipo: "Contrato", status: "assinado" }],
         formularios: [{ formulario_nome: "Anamnese", respondido_em: diasAtras(1) }],
         reunioes: [{ status: "confirmada", data_hora: diasAtras(-2) }],
@@ -192,7 +222,7 @@ describe("avaliarFuros — cenários combinados", () => {
   it("vários furos ao mesmo tempo aparecem todos", () => {
     const furos = avaliarFuros(
       {
-        pagamentos: [{ status: "RECEIVED" }],
+        pagamentos: [{ status: "RECEIVED", valor: 1200, vencimento: null }],
         documentos: [{ tipo: "Termo", status: "assinado" }],
         formularios: [
           {
@@ -248,7 +278,7 @@ describe("detectarFuros (camada de banco)", () => {
     estado.resposta = {
       data: {
         id: "aluna_1",
-        pagamentos: [{ status: "pago" }],
+        pagamentos: [{ status: "pago", valor: 1200, vencimento: null }],
         documentos: [],
         formularios: [],
         reunioes: [],
