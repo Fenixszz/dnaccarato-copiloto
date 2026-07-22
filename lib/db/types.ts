@@ -131,6 +131,7 @@ export type Database = {
           formulario_nome: string;
           respostas: Json;
           respondido_em: string | null;
+          referencia_externa: string | null;
           criado_em: string;
           atualizado_em: string;
         };
@@ -140,6 +141,7 @@ export type Database = {
           formulario_nome: string;
           respostas?: Json;
           respondido_em?: string | null;
+          referencia_externa?: string | null;
           criado_em?: string;
           atualizado_em?: string;
         };
@@ -149,6 +151,7 @@ export type Database = {
           formulario_nome?: string;
           respostas?: Json;
           respondido_em?: string | null;
+          referencia_externa?: string | null;
           criado_em?: string;
           atualizado_em?: string;
         };

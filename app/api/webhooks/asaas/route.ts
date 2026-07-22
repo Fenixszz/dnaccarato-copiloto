@@ -1,26 +1,14 @@
-import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { registrarErroDeRota } from "@/lib/log";
 import { eventoAsaasSchema } from "@/lib/validation/asaas";
 import { processarEventoAsaas } from "@/lib/webhooks/asaas";
+import { tokenValido } from "@/lib/webhooks/autenticacao";
 import { lerCorpoJson } from "@/lib/webhooks/validacao";
 
 const ROTA = "/api/webhooks/asaas";
 
 // Autenticação conforme a documentação do Asaas: o header asaas-access-token
-// deve bater com o token definido ao cadastrar o webhook. Comparação em tempo
-// constante pra não vazar o token por timing.
-function tokenValido(recebido: string | null, esperado: string): boolean {
-  if (!recebido) {
-    return false;
-  }
-  const bufferRecebido = Buffer.from(recebido);
-  const bufferEsperado = Buffer.from(esperado);
-  if (bufferRecebido.length !== bufferEsperado.length) {
-    return false;
-  }
-  return timingSafeEqual(bufferRecebido, bufferEsperado);
-}
+// deve bater com o token definido ao cadastrar o webhook.
 
 export async function POST(request: Request) {
   const segredo = process.env.ASAAS_WEBHOOK_TOKEN;
