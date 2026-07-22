@@ -22,7 +22,7 @@ npx supabase db push
 - **Busca normalizada**: as funções SQL `normalizar_texto` (lower + sem acento, espelha `lib/matching/nomes.ts`) e `normalizar_telefone` (só dígitos) sustentam índices de expressão em `alunas.nome`, `alunas.email` e `alunas.telefone`. As queries de busca/matching devem usar essas mesmas funções pra aproveitar os índices.
 - `aluna_id` é **nullable** nas tabelas de eventos (pagamentos, documentos, formulários, reuniões, tasks): o evento pode chegar por webhook antes do matching de nome vincular a aluna. `on delete restrict` impede apagar uma aluna com histórico.
 - `pagamentos (origem, referencia_externa)` e `tasks_asana (task_id)` são únicos, permitindo upsert idempotente na ingestão.
-- `eventos_processados` é a tabela de dedupe dos webhooks usada por `lib/webhooks/idempotencia.ts`; o `UNIQUE (origem, evento_id_externo)` garante a idempotência também a nível de banco.
+- `eventos_processados` é a tabela de dedupe dos webhooks usada por `lib/webhooks/idempotency.ts`; o `UNIQUE (origem, evento_id_externo)` garante a idempotência também a nível de banco.
 - Tabelas de log (`eventos_brutos`, `briefings_enviados`, `log_auditoria`) são **append-only**: não têm `atualizado_em` nem trigger, porque linha de log não se edita.
 - `api_tokens` guarda **só o hash** do token (`token_hash`), nunca o valor em claro; escopo é um array das tools MCP permitidas.
 - `briefings_enviados.chave_alerta` é única: é o identificador determinístico que impede reenviar o mesmo alerta no WhatsApp.

@@ -5,7 +5,7 @@ import { lerCorpoJson } from "@/lib/webhooks/validacao";
 
 // Ingestão de eventos externos (asaas, forms, calendly, drive, whatsapp).
 // Fluxo por evento: validar → checar idempotência em eventos_processados
-// (lib/webhooks/idempotencia.ts) → processar → registrar. O processamento por
+// (lib/webhooks/idempotency.ts) → processar → registrar. O processamento por
 // serviço entra na fase de integrações.
 export async function POST(request: Request, ctx: RouteContext<"/api/webhooks/[servico]">) {
   const { servico } = await ctx.params;
