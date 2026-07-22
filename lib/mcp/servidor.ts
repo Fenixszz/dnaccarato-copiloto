@@ -3,18 +3,25 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { obterSupabase } from "@/lib/db/supabase";
 import { montarDossie, pagamentoEstaPago } from "@/lib/dossie";
+import { cancelarAgendamentoCalendly } from "@/lib/integrations/calendly";
+import { criarTaskAsana } from "@/lib/integrations/asana";
 import { registrarErroDeRota } from "@/lib/log";
 import { detectarFuros } from "@/lib/matching/furos";
 import { tokensDeNome } from "@/lib/matching/matcher";
 import { normalizarNome } from "@/lib/matching/nomes";
+import { registrarAuditoriaMcp } from "@/lib/mcp/auditoria";
+import type { TokenMcp } from "@/lib/mcp/autenticacao";
+import { enviarMensagemWhatsApp, formatarNumeroWhatsApp } from "@/lib/whatsapp/evolution";
+import { montarLembreteDePagamento } from "@/lib/whatsapp/mensagens";
 
 // Servidor MCP do copiloto. Cada token de api_tokens carrega um escopo
 // (array de nomes de tool); só as tools do escopo são registradas — o
 // tools/list de um token mostra apenas o que ele pode chamar, e chamar
 // qualquer outra devolve "tool não encontrada" sem vazar que ela existe.
 //
-// Tools de escrita (fases futuras) DEVEM gravar em log_auditoria com
-// origem 'mcp' (regra do projeto). Todas as tools abaixo são só de leitura.
+// Toda tool de ESCRITA passa pelo wrapper comAuditoria: grava em
+// log_auditoria (origem 'mcp') quem chamou, o quê e o resultado — sucesso,
+// recusa ou erro. Nenhuma escrita executa sem esse rastro (regra do projeto).
 
 export const TOOLS_DISPONIVEIS = [
   "listar_alunas",
@@ -25,6 +32,9 @@ export const TOOLS_DISPONIVEIS = [
   "documentos_nao_assinados",
   "proxima_reuniao",
   "buscar_formulario",
+  "enviar_lembrete_pagamento",
+  "criar_task_asana",
+  "remarcar_reuniao",
 ] as const;
 
 function respostaJson(valor: unknown): CallToolResult {
@@ -94,9 +104,73 @@ function respostaDeAlunaNaoResolvida(nome: string, resolucao: ResolucaoDeAluna):
   );
 }
 
-export function criarServidorMcp(escopo: string[]): McpServer {
+// Saída das tools de escrita: o resumo vai pra auditoria, a resposta pro
+// cliente MCP.
+type SaidaDeEscrita = {
+  resultado: string;
+  resposta: CallToolResult;
+  // aluna_id que vai pra auditoria; use null quando o id recebido não
+  // existe em alunas (a FK de log_auditoria rejeitaria o valor).
+  alunaIdAuditoria?: string | null;
+};
+
+// TODA tool de escrita passa por aqui: executa e SEMPRE grava a auditoria
+// (sucesso, recusa ou erro). Se a gravação da auditoria falhar, a tool
+// responde erro mesmo que a ação tenha sido executada — nada roda sem rastro.
+function comAuditoria(
+  token: TokenMcp,
+  acao: string,
+  alunaId: string | null,
+  executar: () => Promise<SaidaDeEscrita>
+): Promise<CallToolResult> {
+  return (async () => {
+    let saida: SaidaDeEscrita;
+    try {
+      saida = await executar();
+    } catch (erro) {
+      registrarErroDeRota({ rota: "/api/mcp", resumo: `tool ${acao}` }, erro);
+      saida = {
+        resultado: `erro: ${erro instanceof Error ? erro.message : String(erro)}`,
+        resposta: respostaDeErro(`Erro interno ao executar a tool ${acao}`),
+        // Não dá pra garantir que o id existe em alunas: audita sem o vínculo.
+        alunaIdAuditoria: null,
+      };
+    }
+    try {
+      await registrarAuditoriaMcp({
+        tokenId: token.id,
+        tokenNome: token.nome,
+        acao,
+        alunaId: saida.alunaIdAuditoria !== undefined ? saida.alunaIdAuditoria : alunaId,
+        resultado: saida.resultado,
+      });
+    } catch (erroAuditoria) {
+      registrarErroDeRota({ rota: "/api/mcp", resumo: `auditoria de ${acao}` }, erroAuditoria);
+      return respostaDeErro(
+        `A tool ${acao} não pôde registrar a auditoria — a ação pode ter sido executada; verifique os logs antes de repetir.`
+      );
+    }
+    return saida.resposta;
+  })();
+}
+
+async function buscarAluna(
+  alunaId: string
+): Promise<{ id: string; nome: string; telefone: string | null } | null> {
+  const { data, error } = await obterSupabase()
+    .from("alunas")
+    .select("id, nome, telefone")
+    .eq("id", alunaId)
+    .maybeSingle();
+  if (error) {
+    throw new Error(`Falha ao buscar aluna: ${error.message}`);
+  }
+  return data;
+}
+
+export function criarServidorMcp(token: TokenMcp): McpServer {
   const servidor = new McpServer({ name: "copiloto-dnaccarato", version: "0.1.0" });
-  const permitidas = new Set(escopo);
+  const permitidas = new Set(token.escopo);
 
   if (permitidas.has("listar_alunas")) {
     servidor.registerTool(
@@ -357,6 +431,217 @@ export function criarServidorMcp(escopo: string[]): McpServer {
             });
           }
           return respostaJson({ resultados: encontrados });
+        })
+    );
+  }
+
+  if (permitidas.has("enviar_lembrete_pagamento")) {
+    servidor.registerTool(
+      "enviar_lembrete_pagamento",
+      {
+        title: "Enviar lembrete de pagamento",
+        description:
+          "Envia um lembrete de pagamento por WhatsApp (Evolution API) pra aluna, listando os pagamentos vencidos e não pagos. Ação auditada.",
+        inputSchema: {
+          aluna_id: z.uuid().describe("Id (UUID) da aluna"),
+        },
+      },
+      ({ aluna_id: alunaId }) =>
+        comAuditoria(token, "enviar_lembrete_pagamento", alunaId, async () => {
+          const aluna = await buscarAluna(alunaId);
+          if (!aluna) {
+            return {
+              resultado: "recusado: aluna não encontrada",
+              resposta: respostaDeErro(`Nenhuma aluna com id ${alunaId}`),
+              alunaIdAuditoria: null,
+            };
+          }
+          if (!aluna.telefone) {
+            return {
+              resultado: "recusado: aluna sem telefone cadastrado",
+              resposta: respostaDeErro(
+                `${aluna.nome} não tem telefone cadastrado — impossível enviar WhatsApp.`
+              ),
+            };
+          }
+          const numero = formatarNumeroWhatsApp(aluna.telefone);
+          if (!numero) {
+            return {
+              resultado: `recusado: telefone inválido (${aluna.telefone})`,
+              resposta: respostaDeErro(
+                `O telefone cadastrado de ${aluna.nome} (${aluna.telefone}) não é um número válido de WhatsApp.`
+              ),
+            };
+          }
+          const hoje = new Date().toISOString().slice(0, 10);
+          const { data: pagamentos, error } = await obterSupabase()
+            .from("pagamentos")
+            .select("status, valor, vencimento")
+            .eq("aluna_id", alunaId)
+            .lt("vencimento", hoje);
+          if (error) {
+            throw new Error(`Falha ao buscar pagamentos: ${error.message}`);
+          }
+          const atrasados = (pagamentos ?? []).filter(
+            (pagamento) => !pagamentoEstaPago(pagamento.status)
+          );
+          if (atrasados.length === 0) {
+            return {
+              resultado: "recusado: nenhum pagamento atrasado",
+              resposta: respostaDeErro(
+                `${aluna.nome} não tem pagamento atrasado — nenhum lembrete enviado.`
+              ),
+            };
+          }
+          const mensagem = montarLembreteDePagamento(aluna.nome, atrasados);
+          await enviarMensagemWhatsApp(numero, mensagem);
+          return {
+            resultado: `lembrete enviado pra ${numero} (${atrasados.length} pagamento(s) em atraso)`,
+            resposta: respostaJson({
+              enviado: true,
+              aluna: aluna.nome,
+              numero,
+              pagamentos_em_atraso: atrasados.length,
+              mensagem,
+            }),
+          };
+        })
+    );
+  }
+
+  if (permitidas.has("criar_task_asana")) {
+    servidor.registerTool(
+      "criar_task_asana",
+      {
+        title: "Criar task no Asana",
+        description:
+          "Cria uma task no projeto do Asana vinculada à aluna e espelha na tabela tasks_asana. Ação auditada.",
+        inputSchema: {
+          aluna_id: z.uuid().describe("Id (UUID) da aluna"),
+          titulo: z.string().min(3).describe("Título da task"),
+          descricao: z.string().default("").describe("Descrição/notas da task"),
+        },
+      },
+      ({ aluna_id: alunaId, titulo, descricao }) =>
+        comAuditoria(token, "criar_task_asana", alunaId, async () => {
+          const aluna = await buscarAluna(alunaId);
+          if (!aluna) {
+            return {
+              resultado: "recusado: aluna não encontrada",
+              resposta: respostaDeErro(`Nenhuma aluna com id ${alunaId}`),
+              alunaIdAuditoria: null,
+            };
+          }
+          const task = await criarTaskAsana(`${titulo} — ${aluna.nome}`, descricao);
+          const { error } = await obterSupabase()
+            .from("tasks_asana")
+            .insert({
+              aluna_id: alunaId,
+              task_id: task.gid,
+              titulo: `${titulo} — ${aluna.nome}`,
+              status: "aberta",
+            });
+          if (error) {
+            throw new Error(
+              `Task ${task.gid} criada no Asana, mas falhou ao espelhar no banco: ${error.message}`
+            );
+          }
+          return {
+            resultado: `task ${task.gid} criada no Asana`,
+            resposta: respostaJson({
+              criada: true,
+              task_id: task.gid,
+              titulo: `${titulo} — ${aluna.nome}`,
+              url: task.url,
+            }),
+          };
+        })
+    );
+  }
+
+  if (permitidas.has("remarcar_reuniao")) {
+    servidor.registerTool(
+      "remarcar_reuniao",
+      {
+        title: "Remarcar reunião",
+        description:
+          "Cancela a próxima reunião do Calendly da aluna (via API) e registra o novo horário internamente. Atenção: a API do Calendly não cria agendamento — confirme o novo horário com a aluna ou envie o link de agendamento. Ação auditada.",
+        inputSchema: {
+          aluna_id: z.uuid().describe("Id (UUID) da aluna"),
+          novo_horario: z
+            .string()
+            .refine((valor) => !Number.isNaN(Date.parse(valor)), {
+              message:
+                "novo_horario precisa ser uma data ISO válida (ex.: 2026-07-30T14:00:00-03:00)",
+            })
+            .describe("Novo horário em formato ISO"),
+        },
+      },
+      ({ aluna_id: alunaId, novo_horario: novoHorario }) =>
+        comAuditoria(token, "remarcar_reuniao", alunaId, async () => {
+          const aluna = await buscarAluna(alunaId);
+          if (!aluna) {
+            return {
+              resultado: "recusado: aluna não encontrada",
+              resposta: respostaDeErro(`Nenhuma aluna com id ${alunaId}`),
+              alunaIdAuditoria: null,
+            };
+          }
+          const { data: reunioes, error } = await obterSupabase()
+            .from("reunioes")
+            .select("id, data_hora, referencia_externa")
+            .eq("aluna_id", alunaId)
+            .eq("origem", "calendly")
+            .neq("status", "cancelada")
+            .gte("data_hora", new Date().toISOString())
+            .order("data_hora", { ascending: true })
+            .limit(1);
+          if (error) {
+            throw new Error(`Falha ao buscar reuniões: ${error.message}`);
+          }
+          const reuniao = (reunioes ?? [])[0];
+          if (!reuniao || !reuniao.referencia_externa) {
+            return {
+              resultado: "recusado: nenhuma reunião futura do Calendly pra remarcar",
+              resposta: respostaDeErro(
+                `${aluna.nome} não tem reunião futura do Calendly pra remarcar.`
+              ),
+            };
+          }
+
+          const novaData = new Date(novoHorario).toISOString();
+          await cancelarAgendamentoCalendly(
+            reuniao.referencia_externa,
+            `Remarcada pela clínica para ${novaData}`
+          );
+          const { error: erroCancelamento } = await obterSupabase()
+            .from("reunioes")
+            .update({ status: "cancelada" })
+            .eq("id", reuniao.id);
+          if (erroCancelamento) {
+            throw new Error(`Falha ao marcar reunião como cancelada: ${erroCancelamento.message}`);
+          }
+          const { error: erroNova } = await obterSupabase().from("reunioes").insert({
+            aluna_id: alunaId,
+            origem: "manual",
+            data_hora: novaData,
+            status: "agendada",
+          });
+          if (erroNova) {
+            throw new Error(`Falha ao registrar a nova reunião: ${erroNova.message}`);
+          }
+
+          return {
+            resultado: `reunião de ${reuniao.data_hora} cancelada no Calendly; nova registrada pra ${novaData}`,
+            resposta: respostaJson({
+              remarcada: true,
+              aluna: aluna.nome,
+              horario_anterior: reuniao.data_hora,
+              novo_horario: novaData,
+              aviso:
+                "O Calendly não cria agendamento por API: o horário novo foi registrado internamente. Confirme com a aluna ou envie o link de agendamento pra ficar no calendário dela.",
+            }),
+          };
         })
     );
   }

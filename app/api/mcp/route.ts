@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ erro: "Token ausente, inválido ou revogado" }, { status: 401 });
     }
 
-    const servidor = criarServidorMcp(token.escopo);
+    const servidor = criarServidorMcp(token);
     const transport = new WebStandardStreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,
