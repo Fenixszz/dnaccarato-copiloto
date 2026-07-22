@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Copiloto Dnaccarato
 
-## Getting Started
+Copiloto operacional da clínica Dnaccarato: ingestão de eventos (Asaas, Google Forms, Calendly, Drive, WhatsApp), briefing diário, dashboard administrativo, widget de chat white-label e servidor MCP.
 
-First, run the development server:
+Stack: Next.js (App Router) · TypeScript strict · Tailwind · Supabase · Vitest.
+
+As regras de qualidade do projeto estão no `CLAUDE.md` na raiz do workspace.
+
+## Rodando localmente
 
 ```bash
+npm install
+cp .env.example .env.local   # preencha as variáveis (cada uma está comentada)
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Dashboard: <http://localhost:3000>
+- Widget: <http://localhost:3000/widget>
+- Health check: <http://localhost:3000/api/health>
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script              | O que faz                                                                    |
+| ------------------- | ---------------------------------------------------------------------------- |
+| `npm run dev`       | Sobe o servidor de desenvolvimento                                           |
+| `npm run lint`      | ESLint estrito (qualquer warning falha)                                      |
+| `npm run typecheck` | Gera os tipos de rota do Next e roda `tsc --noEmit`                          |
+| `npm test`          | Testes unitários (Vitest)                                                    |
+| `npm run build`     | Build de produção                                                            |
+| `npm run check`     | Lint + typecheck + testes + build, em sequência. Rode antes de qualquer push |
+| `npm run format`    | Formata o repositório com Prettier                                           |
 
-## Learn More
+Todo commit passa automaticamente por lint (`lint-staged`) e typecheck via hook de pre-commit (Husky).
 
-To learn more about Next.js, take a look at the following resources:
+## Integração contínua (CI)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda em **todo push e pull request**, na ordem: instalar dependências → lint → typecheck → testes → build. Se qualquer etapa falhar, o workflow inteiro falha.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Onde ver o status
 
-## Deploy on Vercel
+- **Aba Actions**: no GitHub, abra o repositório → aba **Actions**. Cada execução aparece com ✅ (passou) ou ❌ (falhou); clique numa execução pra ver o log de cada etapa e descobrir qual comando falhou.
+- **No commit**: na lista de commits, cada commit mostra ✅/❌ ao lado do hash; o ícone leva direto pro log.
+- **No pull request**: o status aparece no rodapé do PR ("All checks have passed" / "Some checks were not successful"), antes do botão de merge.
+- **Badge no README**: depois do primeiro push pro GitHub, substitua `USUARIO/REPO` abaixo e descomente pra mostrar o status do branch principal aqui:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+<!-- [![CI](https://github.com/USUARIO/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/USUARIO/REPO/actions/workflows/ci.yml) -->
