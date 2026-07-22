@@ -17,7 +17,9 @@ npx supabase db push
 ## Decisões de schema
 
 - Todas as tabelas têm `criado_em` (default `now()`) e `atualizado_em` mantido automaticamente pelo trigger `definir_atualizado_em` em todo UPDATE. Nomes em português conforme o CLAUDE.md.
-- **RLS habilitado em todas as tabelas**, sem policies: o acesso é exclusivo do servidor via service role (que ignora RLS). Quando o dashboard/widget precisar de acesso direto do browser, criam-se policies específicas.
+- **RLS habilitado em todas as tabelas.** Modelo de acesso: escrita só pela service role (webhooks, MCP, cron — ela tem BYPASSRLS; a ausência de policies de escrita garante que mais ninguém escreve). Usuários autenticados do dashboard têm policies de **leitura** em `pagamentos`, `documentos`, `api_tokens` e `log_auditoria`; as demais tabelas ainda não têm policy nenhuma (browser não lê).
+- **Foreign keys revisadas**: todas as 7 FKs `aluna_id` são `ON DELETE RESTRICT`, de propósito. Nunca CASCADE em dado de pagamento/documento; e SET NULL foi descartado porque órfão silencioso esconde furo — apagar uma aluna exige tratar o histórico explicitamente antes.
+- **Busca normalizada**: as funções SQL `normalizar_texto` (lower + sem acento, espelha `lib/matching/nomes.ts`) e `normalizar_telefone` (só dígitos) sustentam índices de expressão em `alunas.nome`, `alunas.email` e `alunas.telefone`. As queries de busca/matching devem usar essas mesmas funções pra aproveitar os índices.
 - `aluna_id` é **nullable** nas tabelas de eventos (pagamentos, documentos, formulários, reuniões, tasks): o evento pode chegar por webhook antes do matching de nome vincular a aluna. `on delete restrict` impede apagar uma aluna com histórico.
 - `pagamentos (origem, referencia_externa)` e `tasks_asana (task_id)` são únicos, permitindo upsert idempotente na ingestão.
 - `eventos_processados` é a tabela de dedupe dos webhooks usada por `lib/webhooks/idempotencia.ts`; o `UNIQUE (origem, evento_id_externo)` garante a idempotência também a nível de banco.
