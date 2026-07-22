@@ -1,6 +1,4 @@
-type ResultadoLeituraCorpo =
-  | { sucesso: true; corpo: unknown }
-  | { sucesso: false; erro: string };
+type ResultadoLeituraCorpo = { sucesso: true; corpo: unknown } | { sucesso: false; erro: string };
 
 // Lê o corpo da requisição como JSON sem deixar exceção de parse vazar pra
 // rota. Corpo inválido vira um resultado de erro que a rota converte em 400.

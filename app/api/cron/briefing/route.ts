@@ -11,24 +11,15 @@ export async function GET(request: Request) {
         { rota: "/api/cron/briefing" },
         new Error("CRON_SECRET não configurado (veja .env.example)")
       );
-      return NextResponse.json(
-        { erro: "Rota de cron não configurada" },
-        { status: 500 }
-      );
+      return NextResponse.json({ erro: "Rota de cron não configurada" }, { status: 500 });
     }
     if (request.headers.get("authorization") !== `Bearer ${segredo}`) {
       return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
     }
 
-    return NextResponse.json(
-      { erro: "Briefing diário ainda não implementado" },
-      { status: 501 }
-    );
+    return NextResponse.json({ erro: "Briefing diário ainda não implementado" }, { status: 501 });
   } catch (erro) {
     registrarErroDeRota({ rota: "/api/cron/briefing" }, erro);
-    return NextResponse.json(
-      { erro: "Erro interno ao disparar o briefing" },
-      { status: 500 }
-    );
+    return NextResponse.json({ erro: "Erro interno ao disparar o briefing" }, { status: 500 });
   }
 }

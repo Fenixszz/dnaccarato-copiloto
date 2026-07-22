@@ -7,10 +7,7 @@ import { lerCorpoJson } from "@/lib/webhooks/validacao";
 // Fluxo por evento: validar → checar idempotência em eventos_processados
 // (lib/webhooks/idempotencia.ts) → processar → registrar. O processamento por
 // serviço entra na fase de integrações.
-export async function POST(
-  request: Request,
-  ctx: RouteContext<"/api/webhooks/[servico]">
-) {
+export async function POST(request: Request, ctx: RouteContext<"/api/webhooks/[servico]">) {
   const { servico } = await ctx.params;
   const servicoValidado = servicoWebhookSchema.safeParse(servico);
   if (!servicoValidado.success) {
@@ -31,13 +28,7 @@ export async function POST(
       { status: 501 }
     );
   } catch (erro) {
-    registrarErroDeRota(
-      { rota: `/api/webhooks/${servicoValidado.data}` },
-      erro
-    );
-    return NextResponse.json(
-      { erro: "Erro interno ao processar o evento" },
-      { status: 500 }
-    );
+    registrarErroDeRota({ rota: `/api/webhooks/${servicoValidado.data}` }, erro);
+    return NextResponse.json({ erro: "Erro interno ao processar o evento" }, { status: 500 });
   }
 }
