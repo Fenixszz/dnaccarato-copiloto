@@ -170,6 +170,7 @@ export type Database = {
           data_hora: string;
           status: string;
           link: string | null;
+          referencia_externa: string | null;
           criado_em: string;
           atualizado_em: string;
         };
@@ -180,6 +181,7 @@ export type Database = {
           data_hora: string;
           status: string;
           link?: string | null;
+          referencia_externa?: string | null;
           criado_em?: string;
           atualizado_em?: string;
         };
@@ -190,6 +192,7 @@ export type Database = {
           data_hora?: string;
           status?: string;
           link?: string | null;
+          referencia_externa?: string | null;
           criado_em?: string;
           atualizado_em?: string;
         };
