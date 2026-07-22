@@ -13,7 +13,9 @@
     "format:check": "prettier --check .",
     "typecheck": "next typegen && tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build",
-    "prepare": "husky"
+    "prepare": "husky",
+    "seed": "tsx --env-file=.env.local scripts/seed.ts",
+    "db:types": "npx supabase gen types typescript --linked > lib/db/types.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",
@@ -34,6 +36,7 @@
     "lint-staged": "^17.1.1",
     "prettier": "^3.9.6",
     "tailwindcss": "^4",
+    "tsx": "^4.23.1",
     "typescript": "^5",
     "typescript-eslint": "^8.65.0",
     "vitest": "^4.1.10"

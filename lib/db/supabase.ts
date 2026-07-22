@@ -1,10 +1,11 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/db/types";
 
-let cliente: SupabaseClient | null = null;
+let cliente: SupabaseClient<Database> | null = null;
 
 // Client de servidor (service role). Nunca importar em código que roda no
 // browser — a service role key ignora Row Level Security.
-export function obterSupabase(): SupabaseClient {
+export function obterSupabase(): SupabaseClient<Database> {
   if (cliente) {
     return cliente;
   }
@@ -15,6 +16,6 @@ export function obterSupabase(): SupabaseClient {
       "SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY precisam estar definidas (veja .env.example)"
     );
   }
-  cliente = createClient(url, chave);
+  cliente = createClient<Database>(url, chave);
   return cliente;
 }
