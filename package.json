@@ -20,6 +20,7 @@
     "mcp:token": "tsx --env-file=.env.local scripts/criar-token-mcp.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.113.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@supabase/supabase-js": "^2.110.8",
     "next": "16.2.11",
