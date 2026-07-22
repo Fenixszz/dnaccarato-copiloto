@@ -1,5 +1,7 @@
 # Copiloto Dnaccarato
 
+[![CI](https://github.com/Fenixszz/dnaccarato-copiloto/actions/workflows/ci.yml/badge.svg)](https://github.com/Fenixszz/dnaccarato-copiloto/actions/workflows/ci.yml)
+
 Copiloto operacional da clínica Dnaccarato: ingestão de eventos (Asaas, Google Forms, Calendly, Drive, WhatsApp), briefing diário, dashboard administrativo, widget de chat white-label e servidor MCP.
 
 Stack: Next.js (App Router) · TypeScript strict · Tailwind · Supabase · Vitest.
@@ -66,6 +68,4 @@ O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda em **todo
 - **Aba Actions**: no GitHub, abra o repositório → aba **Actions**. Cada execução aparece com ✅ (passou) ou ❌ (falhou); clique numa execução pra ver o log de cada etapa e descobrir qual comando falhou.
 - **No commit**: na lista de commits, cada commit mostra ✅/❌ ao lado do hash; o ícone leva direto pro log.
 - **No pull request**: o status aparece no rodapé do PR ("All checks have passed" / "Some checks were not successful"), antes do botão de merge.
-- **Badge no README**: depois do primeiro push pro GitHub, substitua `USUARIO/REPO` abaixo e descomente pra mostrar o status do branch principal aqui:
-
-<!-- [![CI](https://github.com/USUARIO/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/USUARIO/REPO/actions/workflows/ci.yml) -->
+- **Badge no README**: o selo no topo deste arquivo mostra o status do branch principal.
