@@ -10,9 +10,11 @@ const { estado, criarSupabaseFalso } = vi.hoisted(() => {
   const estado: {
     alunas: Array<Record<string, unknown>>;
     briefings: Map<string, Record<string, unknown>>;
+    falhas: Array<Record<string, unknown>>;
   } = {
     alunas: [],
     briefings: new Map(),
+    falhas: [],
   };
 
   function criarSupabaseFalso() {
@@ -23,6 +25,14 @@ const { estado, criarSupabaseFalso } = vi.hoisted(() => {
             select: () => ({
               order: () => Promise.resolve({ data: estado.alunas, error: null }),
             }),
+          };
+        }
+        if (tabela === "falhas_sistema") {
+          return {
+            insert: (registro: Record<string, unknown>) => {
+              estado.falhas.push({ ...registro });
+              return Promise.resolve({ error: null });
+            },
           };
         }
         if (tabela === "briefings_enviados") {
@@ -51,6 +61,8 @@ const { estado, criarSupabaseFalso } = vi.hoisted(() => {
 });
 
 vi.mock("@/lib/db/supabase", () => ({ obterSupabase: criarSupabaseFalso }));
+// Sem delays reais de backoff nos testes.
+vi.mock("@/lib/dormir", () => ({ dormir: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("@/lib/whatsapp/evolution", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/lib/whatsapp/evolution")>();
   return { ...original, enviarMensagemWhatsApp: vi.fn() };
@@ -82,6 +94,7 @@ beforeEach(() => {
   vi.stubEnv("ADRIANA_WHATSAPP", "11 98888-0000");
   estado.alunas = [alunaComPagamentoAtrasado()];
   estado.briefings.clear();
+  estado.falhas.length = 0;
   vi.mocked(enviarMensagemWhatsApp).mockReset().mockResolvedValue(undefined);
 });
 
@@ -148,7 +161,7 @@ describe("GET /api/cron/briefing — execução", () => {
     expect(mensagem).toContain("Tudo em dia por aqui");
   });
 
-  it("falha no envio responde 500 e NÃO registra o dia como enviado", async () => {
+  it("falha no envio: 3 tentativas, grava falha_sistema, 500, não marca o dia", async () => {
     vi.mocked(enviarMensagemWhatsApp).mockRejectedValue(
       new Error("Evolution API retornou HTTP 500")
     );
@@ -156,7 +169,13 @@ describe("GET /api/cron/briefing — execução", () => {
     const resposta = await GET(requisicao(`Bearer ${SEGREDO}`));
 
     expect(resposta.status).toBe(500);
-    // Nada registrado: o próximo disparo tenta de novo.
+    // Retry: 3 tentativas antes de desistir.
+    expect(vi.mocked(enviarMensagemWhatsApp)).toHaveBeenCalledTimes(3);
+    // Alerta gravado em falhas_sistema.
+    expect(estado.falhas).toEqual([
+      expect.objectContaining({ area: "briefing", severidade: "alta" }),
+    ]);
+    // Nada em briefings_enviados: o próximo disparo tenta de novo.
     expect(estado.briefings.size).toBe(0);
   });
 

@@ -1,6 +1,7 @@
 import { gerarBriefing } from "@/lib/briefing/priorizar";
 import { obterSupabase } from "@/lib/db/supabase";
-import { enviarMensagemWhatsApp, formatarNumeroWhatsApp } from "@/lib/whatsapp/evolution";
+import { enviarComRetry } from "@/lib/whatsapp/envio";
+import { formatarNumeroWhatsApp } from "@/lib/whatsapp/evolution";
 
 // Execução do briefing diário: gera a mensagem priorizada e envia pro
 // WhatsApp da Adriana, com dedupe por dia em briefings_enviados — se o cron
@@ -40,7 +41,10 @@ export async function executarBriefingDiario(): Promise<ResultadoBriefing> {
   // "Tudo em dia" também é enviado: a ausência do briefing deve significar
   // problema técnico, nunca ambiguidade.
   const briefing = await gerarBriefing();
-  await enviarMensagemWhatsApp(numero, briefing.mensagem);
+  await enviarComRetry(numero, briefing.mensagem, {
+    area: "briefing",
+    contexto: `briefing diário ${hoje}`,
+  });
 
   const { error: erroRegistro } = await obterSupabase().from("briefings_enviados").insert({
     tipo: "briefing_diario",

@@ -197,6 +197,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      falhas_sistema: {
+        Row: {
+          area: string;
+          contexto: string | null;
+          criado_em: string;
+          erro: string;
+          id: string;
+          severidade: string;
+        };
+        Insert: {
+          area: string;
+          contexto?: string | null;
+          criado_em?: string;
+          erro: string;
+          id?: string;
+          severidade?: string;
+        };
+        Update: {
+          area?: string;
+          contexto?: string | null;
+          criado_em?: string;
+          erro?: string;
+          id?: string;
+          severidade?: string;
+        };
+        Relationships: [];
+      };
       formularios: {
         Row: {
           aluna_id: string | null;

@@ -3,7 +3,8 @@ import { obterSupabase } from "@/lib/db/supabase";
 import type { Json } from "@/lib/db/types";
 import { telefonesCorrespondem } from "@/lib/matching/contatos";
 import { extrairTextoDaMensagem, type MensagemWhatsapp } from "@/lib/validation/whatsapp";
-import { enviarMensagemWhatsApp, formatarNumeroWhatsApp } from "@/lib/whatsapp/evolution";
+import { enviarComRetry } from "@/lib/whatsapp/envio";
+import { formatarNumeroWhatsApp } from "@/lib/whatsapp/evolution";
 import { jaProcessado, marcarProcessado } from "@/lib/webhooks/idempotency";
 
 const ORIGEM = "whatsapp";
@@ -69,7 +70,10 @@ export async function processarMensagemWhatsApp(
   if (!numeroDestino) {
     throw new Error(`Número do remetente inválido: ${numeroRemetente}`);
   }
-  await enviarMensagemWhatsApp(numeroDestino, resposta);
+  await enviarComRetry(numeroDestino, resposta, {
+    area: "whatsapp",
+    contexto: "resposta à Adriana",
+  });
 
   await marcarProcessado(ORIGEM, eventoId, `pergunta respondida (${texto.slice(0, 80)})`);
   return { status: "processado", resumo: "pergunta da Adriana respondida na mesma conversa" };

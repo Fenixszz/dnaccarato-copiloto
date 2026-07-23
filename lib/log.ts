@@ -17,3 +17,18 @@ export function registrarErroDeRota(contexto: ContextoDeErro, erro: unknown): vo
     })
   );
 }
+
+// Falha grave que já esgotou as tentativas de recuperação (ex.: envio pela
+// Evolution que falhou 3 vezes). Severidade alta pra o log ser filtrável.
+export function registrarFalhaCritica(area: string, contexto: string, mensagem: string): void {
+  console.error(
+    JSON.stringify({
+      nivel: "critico",
+      severidade: "alta",
+      area,
+      contexto,
+      mensagem,
+      timestamp: new Date().toISOString(),
+    })
+  );
+}
