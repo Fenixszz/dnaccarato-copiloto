@@ -17,11 +17,13 @@
     "seed": "tsx --env-file=.env.local scripts/seed.ts",
     "db:types": "npx supabase gen types typescript --linked > lib/db/types.ts",
     "drive:watch": "tsx --env-file=.env.local scripts/configurar-drive-watch.ts",
-    "mcp:token": "tsx --env-file=.env.local scripts/criar-token-mcp.ts"
+    "mcp:token": "tsx --env-file=.env.local scripts/criar-token-mcp.ts",
+    "auth:usuario": "tsx --env-file=.env.local scripts/criar-usuario-dashboard.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.113.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.8",
     "next": "16.2.11",
     "react": "19.2.4",
