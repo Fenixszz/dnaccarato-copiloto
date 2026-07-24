@@ -1,18 +1,19 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
+import {
+  acaoCriarTaskAsana,
+  acaoEnviarLembretePagamento,
+  acaoRemarcarReuniao,
+} from "@/lib/acoes/escrita";
+import { executarComAuditoria } from "@/lib/acoes/executar";
 import { obterSupabase } from "@/lib/db/supabase";
 import { montarDossie, pagamentoEstaPago } from "@/lib/dossie";
-import { cancelarAgendamentoCalendly } from "@/lib/integrations/calendly";
-import { criarTaskAsana } from "@/lib/integrations/asana";
 import { registrarErroDeRota } from "@/lib/log";
 import { detectarFuros } from "@/lib/matching/furos";
 import { tokensDeNome } from "@/lib/matching/matcher";
 import { normalizarNome } from "@/lib/matching/nomes";
-import { registrarAuditoriaMcp } from "@/lib/mcp/auditoria";
 import type { TokenMcp } from "@/lib/mcp/autenticacao";
-import { enviarMensagemWhatsApp, formatarNumeroWhatsApp } from "@/lib/whatsapp/evolution";
-import { montarLembreteDePagamento } from "@/lib/whatsapp/mensagens";
 
 // Servidor MCP do copiloto. Cada token de api_tokens carrega um escopo
 // (array de nomes de tool); só as tools do escopo são registradas — o
@@ -104,68 +105,35 @@ function respostaDeAlunaNaoResolvida(nome: string, resolucao: ResolucaoDeAluna):
   );
 }
 
-// Saída das tools de escrita: o resumo vai pra auditoria, a resposta pro
-// cliente MCP.
-type SaidaDeEscrita = {
-  resultado: string;
-  resposta: CallToolResult;
-  // aluna_id que vai pra auditoria; use null quando o id recebido não
-  // existe em alunas (a FK de log_auditoria rejeitaria o valor).
-  alunaIdAuditoria?: string | null;
-};
-
-// TODA tool de escrita passa por aqui: executa e SEMPRE grava a auditoria
-// (sucesso, recusa ou erro). Se a gravação da auditoria falhar, a tool
-// responde erro mesmo que a ação tenha sido executada — nada roda sem rastro.
+// TODA tool de escrita passa por aqui: delega pro executor compartilhado
+// (que executa + audita como ator MCP) e traduz o desfecho pra resposta do
+// protocolo MCP. Mesma lógica de ação usada pelos botões do dashboard.
 function comAuditoria(
   token: TokenMcp,
   acao: string,
   alunaId: string | null,
-  executar: () => Promise<SaidaDeEscrita>
+  nucleo: () => Promise<import("@/lib/acoes/escrita").ResultadoEscrita>
 ): Promise<CallToolResult> {
   return (async () => {
-    let saida: SaidaDeEscrita;
-    try {
-      saida = await executar();
-    } catch (erro) {
-      registrarErroDeRota({ rota: "/api/mcp", resumo: `tool ${acao}` }, erro);
-      saida = {
-        resultado: `erro: ${erro instanceof Error ? erro.message : String(erro)}`,
-        resposta: respostaDeErro(`Erro interno ao executar a tool ${acao}`),
-        // Não dá pra garantir que o id existe em alunas: audita sem o vínculo.
-        alunaIdAuditoria: null,
-      };
+    const desfecho = await executarComAuditoria(
+      { origem: "mcp", tokenId: token.id, tokenNome: token.nome },
+      acao,
+      alunaId,
+      nucleo
+    );
+    switch (desfecho.status) {
+      case "ok":
+        return respostaJson(desfecho.dados);
+      case "recusado":
+        return respostaDeErro(desfecho.mensagem);
+      case "erro":
+        return respostaDeErro(`Erro interno ao executar a tool ${acao}`);
+      case "sem_auditoria":
+        return respostaDeErro(
+          `A tool ${acao} não pôde registrar a auditoria — a ação pode ter sido executada; verifique os logs antes de repetir.`
+        );
     }
-    try {
-      await registrarAuditoriaMcp({
-        tokenId: token.id,
-        tokenNome: token.nome,
-        acao,
-        alunaId: saida.alunaIdAuditoria !== undefined ? saida.alunaIdAuditoria : alunaId,
-        resultado: saida.resultado,
-      });
-    } catch (erroAuditoria) {
-      registrarErroDeRota({ rota: "/api/mcp", resumo: `auditoria de ${acao}` }, erroAuditoria);
-      return respostaDeErro(
-        `A tool ${acao} não pôde registrar a auditoria — a ação pode ter sido executada; verifique os logs antes de repetir.`
-      );
-    }
-    return saida.resposta;
   })();
-}
-
-async function buscarAluna(
-  alunaId: string
-): Promise<{ id: string; nome: string; telefone: string | null } | null> {
-  const { data, error } = await obterSupabase()
-    .from("alunas")
-    .select("id, nome, telefone")
-    .eq("id", alunaId)
-    .maybeSingle();
-  if (error) {
-    throw new Error(`Falha ao buscar aluna: ${error.message}`);
-  }
-  return data;
 }
 
 export function criarServidorMcp(token: TokenMcp): McpServer {
@@ -447,65 +415,9 @@ export function criarServidorMcp(token: TokenMcp): McpServer {
         },
       },
       ({ aluna_id: alunaId }) =>
-        comAuditoria(token, "enviar_lembrete_pagamento", alunaId, async () => {
-          const aluna = await buscarAluna(alunaId);
-          if (!aluna) {
-            return {
-              resultado: "recusado: aluna não encontrada",
-              resposta: respostaDeErro(`Nenhuma aluna com id ${alunaId}`),
-              alunaIdAuditoria: null,
-            };
-          }
-          if (!aluna.telefone) {
-            return {
-              resultado: "recusado: aluna sem telefone cadastrado",
-              resposta: respostaDeErro(
-                `${aluna.nome} não tem telefone cadastrado — impossível enviar WhatsApp.`
-              ),
-            };
-          }
-          const numero = formatarNumeroWhatsApp(aluna.telefone);
-          if (!numero) {
-            return {
-              resultado: `recusado: telefone inválido (${aluna.telefone})`,
-              resposta: respostaDeErro(
-                `O telefone cadastrado de ${aluna.nome} (${aluna.telefone}) não é um número válido de WhatsApp.`
-              ),
-            };
-          }
-          const hoje = new Date().toISOString().slice(0, 10);
-          const { data: pagamentos, error } = await obterSupabase()
-            .from("pagamentos")
-            .select("status, valor, vencimento")
-            .eq("aluna_id", alunaId)
-            .lt("vencimento", hoje);
-          if (error) {
-            throw new Error(`Falha ao buscar pagamentos: ${error.message}`);
-          }
-          const atrasados = (pagamentos ?? []).filter(
-            (pagamento) => !pagamentoEstaPago(pagamento.status)
-          );
-          if (atrasados.length === 0) {
-            return {
-              resultado: "recusado: nenhum pagamento atrasado",
-              resposta: respostaDeErro(
-                `${aluna.nome} não tem pagamento atrasado — nenhum lembrete enviado.`
-              ),
-            };
-          }
-          const mensagem = montarLembreteDePagamento(aluna.nome, atrasados);
-          await enviarMensagemWhatsApp(numero, mensagem);
-          return {
-            resultado: `lembrete enviado pra ${numero} (${atrasados.length} pagamento(s) em atraso)`,
-            resposta: respostaJson({
-              enviado: true,
-              aluna: aluna.nome,
-              numero,
-              pagamentos_em_atraso: atrasados.length,
-              mensagem,
-            }),
-          };
-        })
+        comAuditoria(token, "enviar_lembrete_pagamento", alunaId, () =>
+          acaoEnviarLembretePagamento(alunaId)
+        )
     );
   }
 
@@ -523,39 +435,9 @@ export function criarServidorMcp(token: TokenMcp): McpServer {
         },
       },
       ({ aluna_id: alunaId, titulo, descricao }) =>
-        comAuditoria(token, "criar_task_asana", alunaId, async () => {
-          const aluna = await buscarAluna(alunaId);
-          if (!aluna) {
-            return {
-              resultado: "recusado: aluna não encontrada",
-              resposta: respostaDeErro(`Nenhuma aluna com id ${alunaId}`),
-              alunaIdAuditoria: null,
-            };
-          }
-          const task = await criarTaskAsana(`${titulo} — ${aluna.nome}`, descricao);
-          const { error } = await obterSupabase()
-            .from("tasks_asana")
-            .insert({
-              aluna_id: alunaId,
-              task_id: task.gid,
-              titulo: `${titulo} — ${aluna.nome}`,
-              status: "aberta",
-            });
-          if (error) {
-            throw new Error(
-              `Task ${task.gid} criada no Asana, mas falhou ao espelhar no banco: ${error.message}`
-            );
-          }
-          return {
-            resultado: `task ${task.gid} criada no Asana`,
-            resposta: respostaJson({
-              criada: true,
-              task_id: task.gid,
-              titulo: `${titulo} — ${aluna.nome}`,
-              url: task.url,
-            }),
-          };
-        })
+        comAuditoria(token, "criar_task_asana", alunaId, () =>
+          acaoCriarTaskAsana(alunaId, titulo, descricao)
+        )
     );
   }
 
@@ -578,71 +460,9 @@ export function criarServidorMcp(token: TokenMcp): McpServer {
         },
       },
       ({ aluna_id: alunaId, novo_horario: novoHorario }) =>
-        comAuditoria(token, "remarcar_reuniao", alunaId, async () => {
-          const aluna = await buscarAluna(alunaId);
-          if (!aluna) {
-            return {
-              resultado: "recusado: aluna não encontrada",
-              resposta: respostaDeErro(`Nenhuma aluna com id ${alunaId}`),
-              alunaIdAuditoria: null,
-            };
-          }
-          const { data: reunioes, error } = await obterSupabase()
-            .from("reunioes")
-            .select("id, data_hora, referencia_externa")
-            .eq("aluna_id", alunaId)
-            .eq("origem", "calendly")
-            .neq("status", "cancelada")
-            .gte("data_hora", new Date().toISOString())
-            .order("data_hora", { ascending: true })
-            .limit(1);
-          if (error) {
-            throw new Error(`Falha ao buscar reuniões: ${error.message}`);
-          }
-          const reuniao = (reunioes ?? [])[0];
-          if (!reuniao || !reuniao.referencia_externa) {
-            return {
-              resultado: "recusado: nenhuma reunião futura do Calendly pra remarcar",
-              resposta: respostaDeErro(
-                `${aluna.nome} não tem reunião futura do Calendly pra remarcar.`
-              ),
-            };
-          }
-
-          const novaData = new Date(novoHorario).toISOString();
-          await cancelarAgendamentoCalendly(
-            reuniao.referencia_externa,
-            `Remarcada pela clínica para ${novaData}`
-          );
-          const { error: erroCancelamento } = await obterSupabase()
-            .from("reunioes")
-            .update({ status: "cancelada" })
-            .eq("id", reuniao.id);
-          if (erroCancelamento) {
-            throw new Error(`Falha ao marcar reunião como cancelada: ${erroCancelamento.message}`);
-          }
-          const { error: erroNova } = await obterSupabase().from("reunioes").insert({
-            aluna_id: alunaId,
-            origem: "manual",
-            data_hora: novaData,
-            status: "agendada",
-          });
-          if (erroNova) {
-            throw new Error(`Falha ao registrar a nova reunião: ${erroNova.message}`);
-          }
-
-          return {
-            resultado: `reunião de ${reuniao.data_hora} cancelada no Calendly; nova registrada pra ${novaData}`,
-            resposta: respostaJson({
-              remarcada: true,
-              aluna: aluna.nome,
-              horario_anterior: reuniao.data_hora,
-              novo_horario: novaData,
-              aviso:
-                "O Calendly não cria agendamento por API: o horário novo foi registrado internamente. Confirme com a aluna ou envie o link de agendamento pra ficar no calendário dela.",
-            }),
-          };
-        })
+        comAuditoria(token, "remarcar_reuniao", alunaId, () =>
+          acaoRemarcarReuniao(alunaId, novoHorario)
+        )
     );
   }
 

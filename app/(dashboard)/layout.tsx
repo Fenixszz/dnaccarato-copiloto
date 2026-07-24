@@ -26,6 +26,9 @@ export default async function DashboardLayout({
             <Link href="/alunas" className="text-neutral-600 hover:underline">
               Alunas
             </Link>
+            <Link href="/furos" className="text-neutral-600 hover:underline">
+              Furos
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-3">

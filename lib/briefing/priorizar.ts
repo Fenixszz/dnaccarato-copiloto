@@ -22,10 +22,13 @@ export const PRIORIDADE_DOS_FUROS: Record<TipoDeFuro, number> = {
 
 export const MAXIMO_DE_ITENS_NO_BRIEFING = 3;
 
+// Ordena por urgência sem cortar (usado pela tela de furos, que mostra tudo).
+export function ordenarFuros(furos: FuroDeAluna[]): FuroDeAluna[] {
+  return [...furos].sort((a, b) => PRIORIDADE_DOS_FUROS[a.tipo] - PRIORIDADE_DOS_FUROS[b.tipo]);
+}
+
 export function priorizarFuros(furos: FuroDeAluna[]): FuroDeAluna[] {
-  return [...furos]
-    .sort((a, b) => PRIORIDADE_DOS_FUROS[a.tipo] - PRIORIDADE_DOS_FUROS[b.tipo])
-    .slice(0, MAXIMO_DE_ITENS_NO_BRIEFING);
+  return ordenarFuros(furos).slice(0, MAXIMO_DE_ITENS_NO_BRIEFING);
 }
 
 export function montarMensagemDeBriefing(todosOsFuros: FuroDeAluna[]): string {
