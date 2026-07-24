@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { criarSupabaseServidor } from "@/lib/supabase/servidor";
 import { BotaoSair } from "./sair";
 
@@ -15,8 +16,18 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="flex items-center justify-between gap-4 border-b p-4">
-        <h1 className="font-semibold">Copiloto Dnaccarato — área administrativa</h1>
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b p-4">
+        <div className="flex items-center gap-6">
+          <h1 className="font-semibold">Copiloto Dnaccarato</h1>
+          <nav className="flex gap-4 text-sm">
+            <Link href="/" className="text-neutral-600 hover:underline">
+              Visão geral
+            </Link>
+            <Link href="/alunas" className="text-neutral-600 hover:underline">
+              Alunas
+            </Link>
+          </nav>
+        </div>
         <div className="flex items-center gap-3">
           {user?.email && <span className="text-sm text-neutral-500">{user.email}</span>}
           <BotaoSair />
