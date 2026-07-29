@@ -1,0 +1,7 @@
+echo "🔎 pre-commit: lint (staged) + typecheck"
+
+# Lint + Prettier apenas nos arquivos em stage.
+npx lint-staged
+
+# Typecheck do projeto inteiro (tsc não é incremental por arquivo).
+npm run typecheck
