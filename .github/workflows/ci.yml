@@ -1,0 +1,45 @@
+name: CI
+
+# Roda em todo push e em toda pull request.
+on:
+  push:
+  pull_request:
+
+# Cancela execuções antigas do mesmo ref quando chega um novo push.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, Typecheck, Test e Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configura Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # npm ci é reprodutível e falha se o package-lock estiver fora de sincronia.
+      # HUSKY=0 evita instalar git hooks no ambiente de CI.
+      - name: Instala dependências
+        run: npm ci
+        env:
+          HUSKY: 0
+
+      - name: Lint (ESLint, sem warnings tolerados)
+        run: npm run lint
+
+      - name: Typecheck (tsc --noEmit)
+        run: npm run typecheck
+
+      - name: Testes (Vitest)
+        run: npm test
+
+      - name: Build (Next.js)
+        run: npm run build
