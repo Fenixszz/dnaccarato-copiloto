@@ -31,10 +31,11 @@ export interface RegistroEvento {
 export async function reservarEvento(evento: RegistroEvento): Promise<boolean> {
   const db = getServiceClient();
 
+  // Colunas conforme a migration eventos_processados: origem, evento_id_externo.
+  // (A tabela não guarda "tipo"; o payload completo fica em eventos_brutos.)
   const { error } = await db.from("eventos_processados").insert({
-    servico: evento.servico,
-    id_externo: evento.idExterno,
-    tipo: evento.tipo ?? null,
+    origem: evento.servico,
+    evento_id_externo: evento.idExterno,
   });
 
   if (error === null) {

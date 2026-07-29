@@ -4,17 +4,17 @@ import { getServiceClient } from "@/lib/db/client";
  * Queries de acesso ao banco.
  *
  * Inclui o helper de auditoria exigido pelo CLAUDE.md: toda ação de escrita
- * (tools MCP, ações do dashboard) grava na tabela `auditoria` — quem fez,
- * o quê, quando, resultado.
+ * (tools MCP, ações do dashboard, cron) grava na tabela `log_auditoria` —
+ * de onde veio (origem), o quê (acao), sobre quem (aluna_id), resultado e quando.
  */
 
 export interface RegistroAuditoria {
-  /** Quem executou a ação (usuário do dashboard, "mcp", "cron", etc). */
-  ator: string;
+  /** De onde veio a ação: "mcp" | "dashboard" | "cron". */
+  origem: "mcp" | "dashboard" | "cron";
   /** O que foi feito (ex: "criar_cobranca", "enviar_whatsapp"). */
   acao: string;
-  /** Entidade/alvo afetado, se aplicável (ex: "cobranca:123"). */
-  alvo?: string;
+  /** Aluna afetada, se aplicável (uuid). Nulo quando a ação não é sobre uma aluna. */
+  alunaId?: string;
   /** Resultado da ação: "sucesso" | "erro". */
   resultado: "sucesso" | "erro";
   /** Detalhes extras sem dados sensíveis (opcional). */
@@ -22,15 +22,15 @@ export interface RegistroAuditoria {
 }
 
 /**
- * Grava um registro na tabela de auditoria.
+ * Grava um registro na tabela `log_auditoria`.
  * O timestamp ("quando") é preenchido pelo banco (default now()).
  */
 export async function registrarAuditoria(registro: RegistroAuditoria): Promise<void> {
   const db = getServiceClient();
-  const { error } = await db.from("auditoria").insert({
-    ator: registro.ator,
+  const { error } = await db.from("log_auditoria").insert({
+    origem: registro.origem,
     acao: registro.acao,
-    alvo: registro.alvo ?? null,
+    aluna_id: registro.alunaId ?? null,
     resultado: registro.resultado,
     detalhes: registro.detalhes ?? {},
   });
