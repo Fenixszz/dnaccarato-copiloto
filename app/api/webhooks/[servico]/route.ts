@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { comTratamentoDeErro, logarErro, validarCorpo } from "@/lib/webhooks/validation";
-import { reservarEvento } from "@/lib/webhooks/idempotency";
+import { jaProcessado, marcarProcessado } from "@/lib/webhooks/idempotency";
 import {
   extrairIdExterno,
   schemaPorServico,
@@ -16,10 +16,11 @@ export const dynamic = "force-dynamic";
  * Fluxo (segue CLAUDE.md):
  *  1. Valida que o serviço é conhecido.
  *  2. Valida o payload com o schema Zod do serviço → 400 se inválido.
- *  3. Extrai o identificador externo único e reserva o evento na tabela de
- *     dedupe ANTES de processar (idempotência). Duplicado → 200 e ignora.
+ *  3. Extrai o identificador externo único e checa jaProcessado ANTES de
+ *     qualquer escrita (idempotência). Duplicado → 200 e ignora.
  *  4. Processa (placeholder por enquanto).
- *  5. Qualquer exceção é capturada, logada com contexto e vira resposta HTTP.
+ *  5. Só após processar com sucesso, marca o evento como processado.
+ *  6. Qualquer exceção é capturada, logada com contexto e vira resposta HTTP.
  */
 export async function POST(
   request: Request,
@@ -46,7 +47,7 @@ export async function POST(
     }
     const payload = validado.data as Record<string, unknown>;
 
-    // 3. Idempotência: reserva o evento antes de processar.
+    // 3. Idempotência: checa ANTES de qualquer escrita.
     const idExterno = extrairIdExterno(servico, payload);
     if (idExterno === null) {
       logarErro(new Error("Evento sem identificador externo estável"), {
@@ -59,20 +60,16 @@ export async function POST(
       );
     }
 
-    const eventoNovo = await reservarEvento({
-      servico,
-      idExterno,
-      tipo:
-        typeof payload["event"] === "string" ? (payload["event"] as string) : undefined,
-    });
-
-    if (!eventoNovo) {
+    if (await jaProcessado(servico, idExterno)) {
       // Já processado antes — resposta idempotente de sucesso.
       return NextResponse.json({ status: "ignorado", motivo: "evento_duplicado" });
     }
 
     // 4. Processamento específico do serviço — placeholder por sub-fase futura.
     // TODO(fase-integracoes): despachar para o handler do serviço.
+
+    // 5. Só marca como processado após o processamento ter dado certo.
+    await marcarProcessado(servico, idExterno);
 
     return NextResponse.json({ status: "recebido", servico, idExterno });
   });

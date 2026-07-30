@@ -3,53 +3,54 @@ import { getServiceClient } from "@/lib/db/client";
 /**
  * Idempotência de webhooks (CLAUDE.md).
  *
- * Todo webhook é idempotente: usa um identificador externo único do evento
- * para nunca processar o mesmo evento duas vezes. Antes de processar, tenta
- * registrar o evento na tabela `eventos_processados`. Se já existir, o evento
- * é duplicado e deve ser ignorado.
+ * Todo webhook das próximas sub-fases usa este helper:
+ *   1. Checa `jaProcessado(origem, eventoId)` ANTES de qualquer escrita.
+ *      Se true, ignora o evento (é repetição) e não processa de novo.
+ *   2. Processa o evento.
+ *   3. Só DEPOIS de processar com sucesso, chama `marcarProcessado`.
  *
- * A tabela `eventos_processados` deve ter uma restrição UNIQUE em
- * (servico, id_externo). O INSERT com conflito nessa chave é o mecanismo
- * atômico que garante o "exactly once".
+ * A tabela `eventos_processados` tem UNIQUE(origem, evento_id_externo). Esse
+ * índice é a garantia real de "exactly once": mesmo que dois eventos idênticos
+ * cheguem em paralelo e ambos passem por `jaProcessado`, o segundo INSERT em
+ * `marcarProcessado` colide na chave única — e nós tratamos essa colisão como
+ * "já marcado", sem erro (é idempotente por definição).
  */
 
-export interface RegistroEvento {
-  /** Serviço de origem: "asaas" | "autentique" | "calendly" | ... */
-  servico: string;
-  /** Identificador único do evento no sistema de origem. */
-  idExterno: string;
-  /** Tipo/nome do evento na origem (ex: "PAYMENT_CONFIRMED"). */
-  tipo?: string;
+/** Retorna true se (origem, eventoId) já foi processado antes. */
+export async function jaProcessado(origem: string, eventoId: string): Promise<boolean> {
+  const db = getServiceClient();
+  const { data, error } = await db
+    .from("eventos_processados")
+    .select("id")
+    .eq("origem", origem)
+    .eq("evento_id_externo", eventoId)
+    .limit(1);
+
+  if (error) {
+    throw new Error(
+      `Falha ao checar idempotência (${origem}/${eventoId}): ${error.message}`,
+    );
+  }
+  return (data?.length ?? 0) > 0;
 }
 
 /**
- * Tenta reservar o evento para processamento.
- *
- * @returns `true` se o evento é novo (deve ser processado);
- *          `false` se já foi registrado antes (duplicado — ignorar).
+ * Marca (origem, eventoId) como processado. Chamar SÓ após processar com
+ * sucesso. Uma segunda marcação do mesmo evento (corrida) é tolerada — a
+ * colisão na chave única não é erro, é o comportamento idempotente esperado.
  */
-export async function reservarEvento(evento: RegistroEvento): Promise<boolean> {
+export async function marcarProcessado(origem: string, eventoId: string): Promise<void> {
   const db = getServiceClient();
+  const { error } = await db
+    .from("eventos_processados")
+    .insert({ origem, evento_id_externo: eventoId });
 
-  // Colunas conforme a migration eventos_processados: origem, evento_id_externo.
-  // (A tabela não guarda "tipo"; o payload completo fica em eventos_brutos.)
-  const { error } = await db.from("eventos_processados").insert({
-    origem: evento.servico,
-    evento_id_externo: evento.idExterno,
-  });
+  if (!error) return;
 
-  if (error === null) {
-    // Insert bem-sucedido → evento inédito.
-    return true;
-  }
+  // 23505 = unique_violation → já estava marcado. Idempotente, não é erro.
+  if (error.code === "23505") return;
 
-  // Código 23505 = unique_violation no Postgres → evento já registrado.
-  if (error.code === "23505") {
-    return false;
-  }
-
-  // Qualquer outro erro é inesperado e não deve ser engolido.
   throw new Error(
-    `Falha ao registrar evento (${evento.servico}/${evento.idExterno}): ${error.message}`,
+    `Falha ao marcar evento como processado (${origem}/${eventoId}): ${error.message}`,
   );
 }
