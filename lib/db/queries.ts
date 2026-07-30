@@ -1,4 +1,5 @@
 import { getServiceClient } from "@/lib/db/client";
+import type { Json } from "@/lib/db/types";
 
 /**
  * Queries de acesso ao banco.
@@ -18,7 +19,7 @@ export interface RegistroAuditoria {
   /** Resultado da ação: "sucesso" | "erro". */
   resultado: "sucesso" | "erro";
   /** Detalhes extras sem dados sensíveis (opcional). */
-  detalhes?: Record<string, unknown>;
+  detalhes?: Json;
 }
 
 /**

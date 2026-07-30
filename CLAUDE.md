@@ -32,7 +32,8 @@ app/
     cron/briefing/        # dispara o briefing diário (protegido por CRON_SECRET)
     health/              # health check
 lib/
-  db/                     # cliente Supabase (service_role) e queries + auditoria
+  db/                     # cliente Supabase tipado (service_role), queries,
+                          #   auditoria e types.ts (gerado do schema)
   env.ts                  # acesso centralizado e validado a variáveis de ambiente
   integrations/           # um client por serviço (asaas, autentique, calendly,
                           #   drive, forms, gmail, agenda, asana) + google-auth
@@ -40,8 +41,14 @@ lib/
   whatsapp/               # client Evolution API + rate limiter compartilhado
   webhooks/               # helpers: idempotência (dedupe) e validação/erro
   validation/             # schemas Zod de entrada
-tests/                    # testes unitários/integração espelhando /lib
+scripts/                  # seed.ts (dados fictícios) e importar-alunas.ts (CSV/JSON)
+supabase/migrations/      # migrations SQL versionadas
+tests/                    # testes unitários/integração espelhando /lib e /scripts
 ```
+
+Regenerar os tipos do banco: `npm run db:types` (precisa do projeto Supabase
+linkado ou do `supabase start` local). Seed: `npm run seed`. Importar alunas:
+`npm run importar:alunas -- <arquivo.csv|json>`.
 
 ## Fases concluídas
 
