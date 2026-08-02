@@ -35,6 +35,32 @@ export const asaasWebhookSchema = z
   .passthrough();
 export type AsaasWebhook = z.infer<typeof asaasWebhookSchema>;
 
+/**
+ * Schema específico dos eventos de PAGAMENTO do Asaas (PAYMENT_*), usado na
+ * rota dedicada /api/webhooks/asaas. `id` (do evento) é obrigatório para a
+ * idempotência; `payment.id` vira a referencia_externa e `payment.customer`
+ * é o id do cliente (cus_...) usado para buscar contato e casar a aluna.
+ */
+export const asaasPagamentoWebhookSchema = z
+  .object({
+    id: z.string().min(1),
+    event: z.string().min(1),
+    payment: z
+      .object({
+        id: z.string().min(1),
+        customer: z.string().min(1),
+        value: z.number(),
+        status: z.string().min(1),
+        dueDate: z.string().nullish(),
+        paymentDate: z.string().nullish(),
+        billingType: z.string().nullish(),
+        externalReference: z.string().nullish(),
+      })
+      .passthrough(),
+  })
+  .passthrough();
+export type AsaasPagamentoWebhook = z.infer<typeof asaasPagamentoWebhookSchema>;
+
 // -----------------------------------------------------------------------------
 // Autentique — eventos de assinatura de documento
 // -----------------------------------------------------------------------------
