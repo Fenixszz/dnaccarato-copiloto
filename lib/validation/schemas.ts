@@ -200,6 +200,39 @@ export const whatsappWebhookSchema = z
   .passthrough();
 export type WhatsappWebhook = z.infer<typeof whatsappWebhookSchema>;
 
+// -----------------------------------------------------------------------------
+// Asana — batch de eventos (a Asana pode agrupar vários numa request só)
+// -----------------------------------------------------------------------------
+export const asanaWebhookSchema = z
+  .object({
+    events: z.array(
+      z
+        .object({
+          action: z.string().min(1),
+          resource: z
+            .object({
+              gid: z.string().min(1),
+              resource_type: z.string().min(1),
+            })
+            .passthrough(),
+          change: z
+            .object({
+              field: z.string().nullish(),
+              action: z.string().nullish(),
+            })
+            .passthrough()
+            .nullish(),
+          parent: z.record(z.unknown()).nullish(),
+          user: z.record(z.unknown()).nullish(),
+          created_at: z.string().nullish(),
+        })
+        .passthrough(),
+    ),
+  })
+  .passthrough();
+export type AsanaWebhook = z.infer<typeof asanaWebhookSchema>;
+export type AsanaEvento = AsanaWebhook["events"][number];
+
 /** Mapa de schema por serviço, para lookup dinâmico na rota genérica. */
 export const schemaPorServico: Record<ServicoWebhook, z.ZodTypeAny> = {
   asaas: asaasWebhookSchema,
