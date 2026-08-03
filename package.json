@@ -18,6 +18,8 @@
     "importar:alunas": "tsx scripts/importar-alunas.ts",
     "google:teste": "tsx scripts/google-smoke.ts",
     "calendly:setup": "tsx scripts/calendly-setup.ts",
+    "drive:watch": "tsx scripts/drive-watch.ts",
+    "backfill:materiais": "tsx scripts/backfill-materiais.ts",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build",
     "prepare": "husky"
   },

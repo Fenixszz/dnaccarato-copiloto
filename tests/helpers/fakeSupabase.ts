@@ -19,6 +19,8 @@ const UNIQUES: Record<string, string[][]> = {
   eventos_processados: [["origem", "evento_id_externo"]],
   pagamentos: [["origem", "referencia_externa"]],
   reunioes: [["origem", "referencia_externa"]],
+  materiais: [["referencia_externa"]],
+  estado_integracoes: [["chave"]],
   alunas: [["email"]],
 };
 

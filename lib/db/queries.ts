@@ -2,6 +2,43 @@ import { getServiceClient } from "@/lib/db/client";
 import type { Json } from "@/lib/db/types";
 
 /**
+ * Lê um valor de estado de integração (ex: "drive_page_token"). Retorna null
+ * se a chave não existe.
+ */
+export async function lerEstado(chave: string): Promise<Json | null> {
+  const db = getServiceClient();
+  const { data, error } = await db
+    .from("estado_integracoes")
+    .select("valor")
+    .eq("chave", chave)
+    .maybeSingle();
+  if (error) throw new Error(`Falha ao ler estado (${chave}): ${error.message}`);
+  return data?.valor ?? null;
+}
+
+/** Grava (upsert) um valor de estado de integração. */
+export async function salvarEstado(chave: string, valor: Json): Promise<void> {
+  const db = getServiceClient();
+  const { data, error } = await db
+    .from("estado_integracoes")
+    .select("chave")
+    .eq("chave", chave)
+    .limit(1);
+  if (error) throw new Error(`Falha ao ler estado (${chave}): ${error.message}`);
+
+  if (data?.[0]) {
+    const { error: eUp } = await db
+      .from("estado_integracoes")
+      .update({ valor })
+      .eq("chave", chave);
+    if (eUp) throw new Error(`Falha ao atualizar estado (${chave}): ${eUp.message}`);
+  } else {
+    const { error: eIns } = await db.from("estado_integracoes").insert({ chave, valor });
+    if (eIns) throw new Error(`Falha ao inserir estado (${chave}): ${eIns.message}`);
+  }
+}
+
+/**
  * Queries de acesso ao banco.
  *
  * Inclui o helper de auditoria exigido pelo CLAUDE.md: toda ação de escrita

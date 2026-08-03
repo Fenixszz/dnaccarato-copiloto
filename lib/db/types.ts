@@ -156,6 +156,7 @@ export type Database = {
           nome_arquivo: string;
           tipo: string | null;
           link_drive: string | null;
+          referencia_externa: string | null;
           adicionado_em: string;
           created_at: string;
           updated_at: string;
@@ -166,6 +167,7 @@ export type Database = {
           nome_arquivo: string;
           tipo?: string | null;
           link_drive?: string | null;
+          referencia_externa?: string | null;
           adicionado_em?: string;
           created_at?: string;
           updated_at?: string;
@@ -176,6 +178,7 @@ export type Database = {
           nome_arquivo?: string;
           tipo?: string | null;
           link_drive?: string | null;
+          referencia_externa?: string | null;
           adicionado_em?: string;
           created_at?: string;
           updated_at?: string;
@@ -512,6 +515,27 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      estado_integracoes: {
+        Row: {
+          chave: string;
+          valor: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          chave: string;
+          valor?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          chave?: string;
+          valor?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
     };
     Views: {
