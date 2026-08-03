@@ -72,6 +72,37 @@ export const autentiqueWebhookSchema = z
   .passthrough();
 export type AutentiqueWebhook = z.infer<typeof autentiqueWebhookSchema>;
 
+/**
+ * Schema do webhook da Autentique usado na rota dedicada. `id` (topo) é o id do
+ * documento; `event.id` é a chave de idempotência; `event.type` decide o
+ * tratamento; `event.data.object` varia por tipo (fica como record flexível).
+ */
+export const autentiqueEventoWebhookSchema = z
+  .object({
+    id: z.string().min(1),
+    object: z.string().min(1),
+    name: z.string().nullish(),
+    format: z.string().nullish(),
+    url: z.string().nullish(),
+    event: z
+      .object({
+        id: z.string().min(1),
+        object: z.string().min(1),
+        organization: z.union([z.string(), z.number()]).nullish(),
+        type: z.string().min(1),
+        data: z
+          .object({
+            object: z.record(z.unknown()),
+            previous_attributes: z.record(z.unknown()).nullish(),
+          })
+          .passthrough(),
+        created_at: z.string().nullish(),
+      })
+      .passthrough(),
+  })
+  .passthrough();
+export type AutentiqueEventoWebhook = z.infer<typeof autentiqueEventoWebhookSchema>;
+
 // -----------------------------------------------------------------------------
 // Calendly — https://developer.calendly.com/api-docs (webhook payload)
 // -----------------------------------------------------------------------------

@@ -18,6 +18,7 @@ type Row = Record<string, unknown>;
 const UNIQUES: Record<string, string[][]> = {
   eventos_processados: [["origem", "evento_id_externo"]],
   pagamentos: [["origem", "referencia_externa"]],
+  documentos: [["origem", "documento_id_externo"]],
   reunioes: [["origem", "referencia_externa"]],
   materiais: [["referencia_externa"]],
   estado_integracoes: [["chave"]],
