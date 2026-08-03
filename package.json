@@ -17,6 +17,7 @@
     "seed": "tsx scripts/seed.ts",
     "importar:alunas": "tsx scripts/importar-alunas.ts",
     "google:teste": "tsx scripts/google-smoke.ts",
+    "calendly:setup": "tsx scripts/calendly-setup.ts",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build",
     "prepare": "husky"
   },

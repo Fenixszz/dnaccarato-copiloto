@@ -83,6 +83,39 @@ export const calendlyWebhookSchema = z
   .passthrough();
 export type CalendlyWebhook = z.infer<typeof calendlyWebhookSchema>;
 
+/**
+ * Schema dos eventos de invitee do Calendly (invitee.created / invitee.canceled)
+ * usado na rota dedicada. `payload.uri` (do invitee) é estável entre criação e
+ * cancelamento — vira a referencia_externa da reunião.
+ */
+export const calendlyEventoSchema = z
+  .object({
+    event: z.string().min(1),
+    payload: z
+      .object({
+        uri: z.string().min(1),
+        email: z.string().email().nullish(),
+        name: z.string().nullish(),
+        status: z.string().nullish(),
+        scheduled_event: z
+          .object({
+            uri: z.string().min(1),
+            name: z.string().nullish(),
+            status: z.string().nullish(),
+            start_time: z.string().nullish(),
+            end_time: z.string().nullish(),
+            location: z
+              .object({ join_url: z.string().nullish() })
+              .passthrough()
+              .nullish(),
+          })
+          .passthrough(),
+      })
+      .passthrough(),
+  })
+  .passthrough();
+export type CalendlyEvento = z.infer<typeof calendlyEventoSchema>;
+
 // -----------------------------------------------------------------------------
 // Google Forms — respostas encaminhadas (via Apps Script / integração)
 // -----------------------------------------------------------------------------

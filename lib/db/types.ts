@@ -236,6 +236,7 @@ export type Database = {
           data_hora: string | null;
           status: string | null;
           link: string | null;
+          referencia_externa: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -246,6 +247,7 @@ export type Database = {
           data_hora?: string | null;
           status?: string | null;
           link?: string | null;
+          referencia_externa?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -256,6 +258,7 @@ export type Database = {
           data_hora?: string | null;
           status?: string | null;
           link?: string | null;
+          referencia_externa?: string | null;
           created_at?: string;
           updated_at?: string;
         };

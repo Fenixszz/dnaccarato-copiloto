@@ -31,9 +31,22 @@ export async function validarCorpo<T>(
   schema: ZodSchema<T>,
   contexto: ContextoErro,
 ): Promise<ResultadoValidacao<T>> {
+  return validarJson(await request.text(), schema, contexto);
+}
+
+/**
+ * Valida uma string JÁ LIDA (raw body) contra um schema Zod. Útil quando a
+ * rota precisa do corpo cru antes de validar (ex.: conferir assinatura HMAC).
+ * JSON inválido ou fora do schema → resposta 400 pronta.
+ */
+export function validarJson<T>(
+  texto: string,
+  schema: ZodSchema<T>,
+  contexto: ContextoErro,
+): ResultadoValidacao<T> {
   let bruto: unknown;
   try {
-    bruto = await request.json();
+    bruto = JSON.parse(texto);
   } catch {
     logarErro(new Error("Corpo não é JSON válido"), contexto);
     return {
