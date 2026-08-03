@@ -128,6 +128,24 @@ export const formsWebhookSchema = z
   .passthrough();
 export type FormsWebhook = z.infer<typeof formsWebhookSchema>;
 
+/**
+ * Schema do payload enviado pelo Apps Script a cada resposta nova do Form.
+ * `responseId` (id da resposta no Forms) é a chave de idempotência.
+ * `email`/`nome` vêm da própria resposta e servem para casar/criar a aluna.
+ */
+export const formsRespostaWebhookSchema = z
+  .object({
+    formId: z.string().min(1),
+    formTitle: z.string().nullish(),
+    responseId: z.string().min(1),
+    email: z.string().email().nullish(),
+    nome: z.string().nullish(),
+    respostas: z.record(z.unknown()).optional(),
+    respondidoEm: z.string().nullish(),
+  })
+  .passthrough();
+export type FormsRespostaWebhook = z.infer<typeof formsRespostaWebhookSchema>;
+
 // -----------------------------------------------------------------------------
 // Google Drive — notificações de mudança (push notifications)
 // -----------------------------------------------------------------------------
