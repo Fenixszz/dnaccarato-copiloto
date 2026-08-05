@@ -3,13 +3,15 @@ import { ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { logarErro } from "@/lib/webhooks/validation";
 import { registrarAuditoria } from "@/lib/db/queries";
 import { autenticarBearer, type TokenAutenticado } from "@/lib/mcp/auth";
-import { FERRAMENTAS, acharFerramenta } from "@/lib/mcp/tools";
+import { FERRAMENTAS, acharFerramenta, ErroFerramenta } from "@/lib/mcp/tools";
 
 export const dynamic = "force-dynamic";
 
 const PROTOCOL_VERSION = "2024-11-05";
 // Código server-defined para "não autorizado" (fora do range reservado do JSON-RPC).
 const CODIGO_NAO_AUTORIZADO = -32001;
+// Código server-defined para erro de negócio da tool (ex.: aluna não encontrada).
+const CODIGO_ERRO_FERRAMENTA = -32004;
 
 type IdRpc = string | number | null;
 
@@ -127,7 +129,6 @@ export async function POST(request: Request): Promise<NextResponse> {
         });
         return ok(id, { content: [{ type: "text", text: JSON.stringify(resultado) }] });
       } catch (erro) {
-        logarErro(erro, { rota, resumo: { tool: nome } });
         await registrarAuditoria({
           origem: "mcp",
           acao: nome,
@@ -135,6 +136,12 @@ export async function POST(request: Request): Promise<NextResponse> {
           resultado: "erro",
           detalhes: { token_id: token.id },
         });
+        // Erro de negócio (ex.: aluna não encontrada) → mensagem clara e segura.
+        if (erro instanceof ErroFerramenta) {
+          return erroRpc(id, CODIGO_ERRO_FERRAMENTA, erro.message);
+        }
+        // Erro interno → não vaza detalhe.
+        logarErro(erro, { rota, resumo: { tool: nome } });
         return erroRpc(id, ErrorCode.InternalError, "Erro ao executar a ferramenta.");
       }
     }
