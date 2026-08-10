@@ -39,3 +39,6 @@ gcp-*.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# QR do WhatsApp (não commitar)
+whatsapp-qr.png

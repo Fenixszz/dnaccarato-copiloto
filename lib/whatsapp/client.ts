@@ -1,5 +1,5 @@
 import { optionalEnv, requireEnv } from "@/lib/env";
-import { whatsappRateLimiter } from "@/lib/whatsapp/rate-limiter";
+import { whatsappRateLimiter } from "@/lib/whatsapp/rateLimiter";
 
 /**
  * Client da Evolution API (WhatsApp) — conta Evolution API do João.
