@@ -1,6 +1,38 @@
 import { getServiceClient } from "@/lib/db/client";
 import type { Json } from "@/lib/db/types";
 
+export interface RegistroFalha {
+  tipo: string;
+  severidade: "baixa" | "media" | "alta" | "critica";
+  mensagem: string;
+  contexto?: Json;
+}
+
+/**
+ * Registra uma falha operacional em `falhas_sistema`. Best-effort: não deixa
+ * a falha de log derrubar a operação principal.
+ */
+export async function registrarFalhaSistema(registro: RegistroFalha): Promise<void> {
+  const db = getServiceClient();
+  const { error } = await db.from("falhas_sistema").insert({
+    tipo: registro.tipo,
+    severidade: registro.severidade,
+    mensagem: registro.mensagem,
+    contexto: registro.contexto ?? {},
+  });
+  if (error !== null) {
+    console.error(
+      JSON.stringify({
+        nivel: "error",
+        timestamp: new Date().toISOString(),
+        contexto: "registrarFalhaSistema",
+        tipo: registro.tipo,
+        erro: error.message,
+      }),
+    );
+  }
+}
+
 /**
  * Lê um valor de estado de integração (ex: "drive_page_token"). Retorna null
  * se a chave não existe.

@@ -12,8 +12,8 @@ interface RQ {
 }
 const h = vi.hoisted(() => ({
   porTabela: {} as Record<string, RQ>,
-  enviarTexto: vi.fn((_e: { numero: string; texto: string }) =>
-    Promise.resolve({ ok: true, status: 200, corpo: {} }),
+  enviarComRetry: vi.fn((_e: { numero: string; texto: string }) =>
+    Promise.resolve({ ok: true, tentativas: 1 }),
   ),
   responderComMcp: vi.fn((_t: string) => Promise.resolve("A Ana está em dia. ✅")),
 }));
@@ -33,7 +33,7 @@ vi.mock("@/lib/db/client", () => {
   };
   return { getServiceClient: () => ({ from: (t: string) => make(t) }) };
 });
-vi.mock("@/lib/whatsapp/client", () => ({ enviarTexto: h.enviarTexto }));
+vi.mock("@/lib/whatsapp/envio", () => ({ enviarComRetry: h.enviarComRetry }));
 vi.mock("@/lib/integrations/anthropic", () => ({ responderComMcp: h.responderComMcp }));
 
 import { POST } from "@/app/api/webhooks/whatsapp/route";
@@ -67,7 +67,7 @@ const jsonDe = async (res: Response) => res.json();
 beforeEach(() => {
   h.porTabela = {};
   vi.clearAllMocks();
-  h.enviarTexto.mockResolvedValue({ ok: true, status: 200, corpo: {} });
+  h.enviarComRetry.mockResolvedValue({ ok: true, tentativas: 1 });
   h.responderComMcp.mockResolvedValue("A Ana está em dia. ✅");
   process.env.BRIEFING_WHATSAPP = "+55 11 99999-0000";
 });
@@ -78,7 +78,7 @@ describe("POST /api/webhooks/whatsapp", () => {
     expect((await jsonDe(res)).status).toBe("respondido");
 
     expect(h.responderComMcp).toHaveBeenCalledWith("status da Ana?");
-    expect(h.enviarTexto).toHaveBeenCalledWith({
+    expect(h.enviarComRetry.mock.calls[0]?.[0]).toEqual({
       numero: ADRIANA,
       texto: "A Ana está em dia. ✅",
     });
@@ -116,7 +116,7 @@ describe("POST /api/webhooks/whatsapp", () => {
     h.responderComMcp.mockRejectedValue(new Error("anthropic caiu"));
     const res = await POST(evento());
     expect((await jsonDe(res)).status).toBe("respondido");
-    const arg = h.enviarTexto.mock.calls[0]?.[0];
+    const arg = h.enviarComRetry.mock.calls[0]?.[0];
     expect(arg?.texto).toMatch(/problema/i);
   });
 

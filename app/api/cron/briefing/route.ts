@@ -9,21 +9,12 @@ import {
   type Compromisso,
 } from "@/lib/briefing/priorizar";
 import { compromissosDeHoje } from "@/lib/integrations/agenda";
-import { enviarTexto } from "@/lib/whatsapp/client";
+import { enviarComRetry } from "@/lib/whatsapp/envio";
 import { normalizarTelefone } from "@/lib/matching/matcher";
+import { horaEmSaoPaulo } from "@/lib/tempo";
 import type { Json } from "@/lib/db/types";
 
 export const dynamic = "force-dynamic";
-
-/** Hora atual (0–23) no fuso de São Paulo. */
-function horaEmSaoPaulo(agora: Date = new Date()): number {
-  const fmt = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Sao_Paulo",
-    hour: "2-digit",
-    hour12: false,
-  });
-  return Number.parseInt(fmt.format(agora), 10);
-}
 
 /**
  * Briefing diário — chamado pelo Cron da Vercel.
@@ -76,16 +67,19 @@ export async function GET(request: Request): Promise<NextResponse> {
     // 2. Mensagem.
     const texto = gerarTextoBriefing(prioritizados, compromissos);
 
-    // 3. Envia no WhatsApp da Adriana (enviarTexto passa pelo rate limiter).
+    // 3. Envia no WhatsApp da Adriana (retry + backoff; rate limiter dentro).
     const destino = normalizarTelefone(requireEnv("BRIEFING_WHATSAPP"));
-    const envio = await enviarTexto({ numero: destino, texto });
+    const envio = await enviarComRetry(
+      { numero: destino, texto },
+      { contexto: { origem: "briefing" } },
+    );
 
     // 4. Salva o histórico.
     const db = getServiceClient();
     const metadata: Record<string, Json> = {
       furos: prioritizados.length,
       compromissos: compromissos.length,
-      evolution_status: envio.status,
+      tentativas: envio.tentativas,
     };
     const { error: eHist } = await db.from("briefings_enviados").insert({
       destino,
@@ -96,15 +90,11 @@ export async function GET(request: Request): Promise<NextResponse> {
     });
     if (eHist) throw new Error(`Falha ao salvar briefing: ${eHist.message}`);
 
+    // Se todas as tentativas falharam, a falha já foi registrada em
+    // falhas_sistema (por enviarComRetry).
     if (!envio.ok) {
-      await db.from("falhas_sistema").insert({
-        tipo: "whatsapp_envio",
-        severidade: "alta",
-        mensagem: `Briefing não enviado (Evolution HTTP ${envio.status}).`,
-        contexto: { destino },
-      });
       return NextResponse.json(
-        { status: "falha_envio", http: envio.status },
+        { status: "falha_envio", tentativas: envio.tentativas },
         { status: 502 },
       );
     }

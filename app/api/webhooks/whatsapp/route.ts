@@ -4,7 +4,7 @@ import { jaProcessado, marcarProcessado } from "@/lib/webhooks/idempotency";
 import { whatsappWebhookSchema } from "@/lib/validation/schemas";
 import { getServiceClient } from "@/lib/db/client";
 import { requireEnv } from "@/lib/env";
-import { enviarTexto } from "@/lib/whatsapp/client";
+import { enviarComRetry } from "@/lib/whatsapp/envio";
 import { responderComMcp } from "@/lib/integrations/anthropic";
 import { normalizarTelefone, telefonesCasam } from "@/lib/matching/matcher";
 import type { Json } from "@/lib/db/types";
@@ -70,11 +70,14 @@ export async function POST(request: Request): Promise<NextResponse> {
       resposta = FALLBACK;
     }
 
-    // Responde na mesma conversa (via rate limiter, dentro de enviarTexto).
-    await enviarTexto({ numero, texto: resposta });
+    // Responde na mesma conversa (retry + backoff; rate limiter dentro).
+    const envio = await enviarComRetry(
+      { numero, texto: resposta },
+      { contexto: { origem: "resposta_whatsapp" } },
+    );
 
     if (idMsg) await marcarProcessado(ORIGEM, idMsg);
-    return NextResponse.json({ status: "respondido" });
+    return NextResponse.json({ status: envio.ok ? "respondido" : "resposta_falhou" });
   });
 }
 
