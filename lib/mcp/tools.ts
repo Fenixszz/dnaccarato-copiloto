@@ -1,10 +1,15 @@
 import { z } from "zod";
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { getServiceClient } from "@/lib/db/client";
+import { optionalEnv } from "@/lib/env";
 import { montarDossie, type DossieRow } from "@/lib/dossie";
 import { detectarFuros } from "@/lib/matching/furos";
-import { encontrarMelhorMatch } from "@/lib/matching/matcher";
+import { encontrarMelhorMatch, normalizarTelefone } from "@/lib/matching/matcher";
 import { buscarEmails } from "@/lib/integrations/gmail";
+import { enviarTexto } from "@/lib/whatsapp/client";
+import { criarTask } from "@/lib/integrations/asana";
+import { cancelarEvento } from "@/lib/integrations/calendly";
+import type { Json } from "@/lib/db/types";
 
 /**
  * Erro "de negócio" da ferramenta (ex.: aluna não encontrada). A rota MCP
@@ -30,6 +35,8 @@ export interface FerramentaMcp {
   inputSchema: Tool["inputSchema"];
   argsSchema: z.ZodTypeAny;
   executar(args: unknown): Promise<unknown>;
+  /** Detalhes extras (sem dado sensível) para a auditoria da chamada. */
+  resumoAuditoria?(args: unknown, resultado: unknown): Record<string, Json>;
 }
 
 const SELECT_DOSSIE = `
@@ -62,6 +69,27 @@ async function resolverAlunaPorNome(nome: string): Promise<AlunaMin> {
   }));
   if (!match) throw new ErroFerramenta(`Aluna não encontrada: "${nome}".`);
   return match.registro;
+}
+
+/** Variações do lembrete de pagamento (mesma informação, texto levemente diferente). */
+function variacoesLembrete(nome: string): string[] {
+  return [
+    `Oi, ${nome}! Passando pra lembrar do seu pagamento em aberto por aqui. Qualquer dúvida, é só chamar. 💜`,
+    `Olá ${nome}, tudo bem? Notamos um pagamento pendente na sua conta — consegue dar uma olhadinha? Ficamos à disposição!`,
+    `${nome}, tudo certo? Só um lembrete rápido: consta um pagamento em aberto. Se já tiver pago, pode desconsiderar. 🙌`,
+  ];
+}
+
+/** Índice pseudo-aleatório porém determinístico por semente (mesma aluna → mesma variação). */
+function indiceVariacao(semente: string, total: number): number {
+  let h = 0;
+  for (const ch of semente) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h % total;
+}
+
+/** Extrai o UUID do scheduled_event a partir da uri do invitee do Calendly. */
+function extrairEventUuid(inviteeUri: string): string | null {
+  return /scheduled_events\/([^/]+)/.exec(inviteeUri)?.[1] ?? null;
 }
 
 export const FERRAMENTAS: FerramentaMcp[] = [
@@ -266,6 +294,182 @@ export const FERRAMENTAS: FerramentaMcp[] = [
     async executar(args) {
       const { aluna_id } = args as { aluna_id: string };
       return { furos: await detectarFuros(aluna_id) };
+    },
+  },
+
+  // ----------------------------- Tools de ESCRITA -----------------------------
+  {
+    name: "enviar_lembrete_pagamento",
+    description:
+      "Envia um lembrete de pagamento pela WhatsApp (Evolution API) para a aluna.",
+    inputSchema: {
+      type: "object",
+      properties: { aluna_id: { type: "string", description: "UUID da aluna" } },
+      required: ["aluna_id"],
+    },
+    argsSchema: z.object({ aluna_id: z.string().uuid() }),
+    async executar(args) {
+      const { aluna_id } = args as { aluna_id: string };
+      const db = getServiceClient();
+      const { data, error } = await db
+        .from("alunas")
+        .select("id, nome, telefone")
+        .eq("id", aluna_id)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!data) throw new ErroFerramenta(`Aluna não encontrada: ${aluna_id}.`);
+
+      const aluna = data as { nome: string; telefone: string | null };
+      if (!aluna.telefone) throw new ErroFerramenta("Aluna sem telefone cadastrado.");
+
+      const primeiroNome = aluna.nome.split(" ")[0] ?? aluna.nome;
+      const variacoes = variacoesLembrete(primeiroNome);
+      const i = indiceVariacao(aluna_id, variacoes.length);
+      const texto =
+        variacoes[i] ?? variacoes[0] ?? `Lembrete de pagamento, ${primeiroNome}.`;
+
+      // Passa pelo rate limiter compartilhado (dentro de enviarTexto).
+      const envio = await enviarTexto({
+        numero: normalizarTelefone(aluna.telefone),
+        texto,
+      });
+      if (!envio.ok) {
+        throw new Error(`Evolution: envio falhou (HTTP ${envio.status}).`);
+      }
+      return { enviado: true, variacao: i, texto };
+    },
+    resumoAuditoria(args, resultado) {
+      return {
+        aluna_id: (args as { aluna_id: string }).aluna_id,
+        canal: "whatsapp",
+        variacao: (resultado as { variacao: number }).variacao,
+      };
+    },
+  },
+  {
+    name: "criar_task_asana",
+    description: "Cria uma task no Asana e vincula à aluna.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        aluna_id: { type: "string", description: "UUID da aluna" },
+        titulo: { type: "string" },
+        descricao: { type: "string" },
+      },
+      required: ["aluna_id", "titulo"],
+    },
+    argsSchema: z.object({
+      aluna_id: z.string().uuid(),
+      titulo: z.string().min(1),
+      descricao: z.string().optional(),
+    }),
+    async executar(args) {
+      const { aluna_id, titulo, descricao } = args as {
+        aluna_id: string;
+        titulo: string;
+        descricao?: string;
+      };
+      const db = getServiceClient();
+      const { data, error } = await db
+        .from("alunas")
+        .select("id, nome")
+        .eq("id", aluna_id)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!data) throw new ErroFerramenta(`Aluna não encontrada: ${aluna_id}.`);
+
+      const workspace = optionalEnv("ASANA_WORKSPACE_ID");
+      const projeto = optionalEnv("ASANA_WEBHOOK_RESOURCE_ID");
+      if (!workspace && !projeto) {
+        throw new Error("Configure ASANA_WORKSPACE_ID ou ASANA_WEBHOOK_RESOURCE_ID.");
+      }
+
+      const nomeAluna = (data as { nome: string }).nome;
+      const notas = descricao
+        ? `${descricao}\n\n(Aluna: ${nomeAluna})`
+        : `Aluna: ${nomeAluna}`;
+      const criada = await criarTask({
+        nome: titulo,
+        notas,
+        workspace: workspace || undefined,
+        projeto: projeto || undefined,
+      });
+
+      // Vincula na nossa tabela para o webhook manter atualizado depois.
+      const { error: eIns } = await db
+        .from("tasks_asana")
+        .insert({ aluna_id, task_id: criada.gid, titulo, status: "em_andamento" });
+      if (eIns) throw new Error(`Falha ao vincular a task: ${eIns.message}`);
+
+      return { task_id: criada.gid, titulo };
+    },
+    resumoAuditoria(args, resultado) {
+      return {
+        aluna_id: (args as { aluna_id: string }).aluna_id,
+        task_id: (resultado as { task_id: string }).task_id,
+        titulo: (args as { titulo: string }).titulo,
+      };
+    },
+  },
+  {
+    name: "remarcar_reuniao",
+    description:
+      "Cancela a reunião atual da aluna no Calendly para remarcação (a aluna reconfirma o novo horário).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        aluna_id: { type: "string", description: "UUID da aluna" },
+        novo_horario: { type: "string", description: "Novo horário desejado (ISO 8601)" },
+      },
+      required: ["aluna_id", "novo_horario"],
+    },
+    argsSchema: z.object({
+      aluna_id: z.string().uuid(),
+      novo_horario: z.string().datetime(),
+    }),
+    async executar(args) {
+      const { aluna_id, novo_horario } = args as {
+        aluna_id: string;
+        novo_horario: string;
+      };
+      const db = getServiceClient();
+      const { data, error } = await db
+        .from("reunioes")
+        .select("id, referencia_externa, status")
+        .eq("aluna_id", aluna_id)
+        .eq("origem", "calendly")
+        .eq("status", "agendada")
+        .limit(1);
+      if (error) throw new Error(error.message);
+
+      const reuniao = (data ?? [])[0] as
+        { id: string; referencia_externa: string | null } | undefined;
+      const ref = reuniao?.referencia_externa ?? null;
+      const eventUuid = ref ? extrairEventUuid(ref) : null;
+      if (!reuniao || !eventUuid) {
+        throw new ErroFerramenta("Nenhuma reunião agendada do Calendly para esta aluna.");
+      }
+
+      await cancelarEvento(eventUuid, `Remarcação solicitada para ${novo_horario}.`);
+
+      const { error: eUp } = await db
+        .from("reunioes")
+        .update({ status: "cancelada" })
+        .eq("id", reuniao.id);
+      if (eUp) throw new Error(`Falha ao atualizar a reunião: ${eUp.message}`);
+
+      return {
+        evento: eventUuid,
+        cancelada: true,
+        novo_horario_solicitado: novo_horario,
+        aviso: "Reunião atual cancelada; a aluna deve reconfirmar o novo horário.",
+      };
+    },
+    resumoAuditoria(args) {
+      return {
+        aluna_id: (args as { aluna_id: string }).aluna_id,
+        novo_horario: (args as { novo_horario: string }).novo_horario,
+      };
     },
   },
 ];

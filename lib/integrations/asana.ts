@@ -58,6 +58,30 @@ export async function criarWebhook(
   return json.data;
 }
 
+/** Cria uma task no Asana. Exige workspace OU projeto. Retorna o gid criado. */
+export async function criarTask(params: {
+  nome: string;
+  notas?: string;
+  workspace?: string;
+  projeto?: string;
+}): Promise<{ gid: string }> {
+  const data: Record<string, unknown> = { name: params.nome };
+  if (params.notas) data.notes = params.notas;
+  if (params.projeto) data.projects = [params.projeto];
+  if (params.workspace) data.workspace = params.workspace;
+
+  const resposta = await asanaFetch("/tasks", {
+    method: "POST",
+    body: JSON.stringify({ data }),
+  });
+  if (!resposta.ok) {
+    const detalhe = await resposta.text();
+    throw new Error(`Asana: falha ao criar task (HTTP ${resposta.status}): ${detalhe}`);
+  }
+  const json = (await resposta.json()) as { data: { gid: string } };
+  return { gid: json.data.gid };
+}
+
 export interface TaskAsana {
   gid: string;
   name?: string;

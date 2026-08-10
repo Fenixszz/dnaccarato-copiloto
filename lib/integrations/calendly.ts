@@ -23,6 +23,23 @@ async function calendlyFetch(caminho: string, init: RequestInit = {}): Promise<R
   });
 }
 
+/**
+ * Cancela um evento agendado no Calendly. (A API do Calendly não reagenda para
+ * um horário arbitrário: o fluxo de remarcação é cancelar + a pessoa reconfirma.)
+ */
+export async function cancelarEvento(eventUuid: string, motivo: string): Promise<void> {
+  const resposta = await calendlyFetch(
+    `/scheduled_events/${encodeURIComponent(eventUuid)}/cancellation`,
+    { method: "POST", body: JSON.stringify({ reason: motivo }) },
+  );
+  if (!resposta.ok) {
+    const detalhe = await resposta.text();
+    throw new Error(
+      `Calendly: falha ao cancelar evento (HTTP ${resposta.status}): ${detalhe}`,
+    );
+  }
+}
+
 /** Retorna os dados do usuário Calendly autenticado (conta da Adriana). */
 export async function usuarioAtual(): Promise<unknown> {
   const resposta = await calendlyFetch("/users/me");

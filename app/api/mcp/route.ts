@@ -125,7 +125,10 @@ export async function POST(request: Request): Promise<NextResponse> {
           acao: nome,
           alunaId,
           resultado: "sucesso",
-          detalhes: { token_id: token.id },
+          detalhes: {
+            token_id: token.id,
+            ...(ferramenta.resumoAuditoria?.(args.data, resultado) ?? {}),
+          },
         });
         return ok(id, { content: [{ type: "text", text: JSON.stringify(resultado) }] });
       } catch (erro) {
