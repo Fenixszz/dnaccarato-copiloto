@@ -162,3 +162,26 @@ export async function detectarFuros(alunaId: string): Promise<Furo[]> {
 
   return avaliarFuros(data as unknown as DadosAlunaFuros);
 }
+
+export interface AlunaComFuros {
+  aluna: { id: string; nome: string };
+  furos: Furo[];
+}
+
+/**
+ * Detecta os furos de TODAS as alunas numa única query (sem N+1) — usado pelo
+ * briefing diário.
+ */
+export async function detectarFurosDeTodas(
+  agora: Date = new Date(),
+): Promise<AlunaComFuros[]> {
+  const db = getServiceClient();
+  const { data, error } = await db.from("alunas").select(SELECT_FUROS);
+  if (error) throw new Error(`Falha ao carregar alunas: ${error.message}`);
+
+  const linhas = (data ?? []) as (DadosAlunaFuros & { id: string; nome: string })[];
+  return linhas.map((row) => ({
+    aluna: { id: row.id, nome: row.nome },
+    furos: avaliarFuros(row, agora),
+  }));
+}
