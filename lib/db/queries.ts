@@ -1,5 +1,8 @@
 import { getServiceClient } from "@/lib/db/client";
 import type { Json } from "@/lib/db/types";
+import { intervaloSemanaSP } from "@/lib/tempo";
+import { montarDossie, type Dossie, type DossieRow } from "@/lib/dossie";
+import type { AlunaLista } from "@/lib/alunas/busca";
 
 export interface RegistroFalha {
   tipo: string;
@@ -118,4 +121,106 @@ export async function registrarAuditoria(registro: RegistroAuditoria): Promise<v
       }),
     );
   }
+}
+
+/** Totais exibidos nos cards da tela inicial do dashboard. */
+export interface ResumoDashboard {
+  /** Alunas cadastradas (hoje não há conceito de arquivamento → todas ativas). */
+  alunasAtivas: number;
+  /** Pagamentos com status "atrasado". */
+  pagamentosEmAtraso: number;
+  /** Documentos com status "pendente" ou "rejeitado" (precisam de ação). */
+  documentosPendentesRejeitados: number;
+  /** Reuniões com data_hora dentro da semana corrente (seg–dom, fuso SP). */
+  reunioesDaSemana: number;
+}
+
+/**
+ * Conta, em uma leva de queries `head + count` (sem trazer linhas), os totais
+ * da tela inicial do dashboard. Usa a service_role (padrão do app: todo acesso
+ * é via servidor); o gate de auth do layout garante que só Adriana/João chegam.
+ * Lança com contexto se qualquer contagem falhar.
+ */
+export async function contarResumoDashboard(
+  agora: Date = new Date(),
+): Promise<ResumoDashboard> {
+  const db = getServiceClient();
+  const { inicio, fim } = intervaloSemanaSP(agora);
+
+  const [alunas, atraso, documentos, reunioes] = await Promise.all([
+    db.from("alunas").select("*", { count: "exact", head: true }),
+    db
+      .from("pagamentos")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "atrasado"),
+    db
+      .from("documentos")
+      .select("*", { count: "exact", head: true })
+      .in("status", ["pendente", "rejeitado"]),
+    db
+      .from("reunioes")
+      .select("*", { count: "exact", head: true })
+      .gte("data_hora", inicio)
+      .lt("data_hora", fim),
+  ]);
+
+  for (const r of [alunas, atraso, documentos, reunioes]) {
+    if (r.error !== null) {
+      throw new Error(`Falha ao carregar resumo do dashboard: ${r.error.message}`);
+    }
+  }
+
+  return {
+    alunasAtivas: alunas.count ?? 0,
+    pagamentosEmAtraso: atraso.count ?? 0,
+    documentosPendentesRejeitados: documentos.count ?? 0,
+    reunioesDaSemana: reunioes.count ?? 0,
+  };
+}
+
+/**
+ * Lista as alunas para a tela de lista (subconjunto do cadastro), ordenadas
+ * por nome. A busca (nome/e-mail/telefone) é aplicada em memória por
+ * `filtrarAlunas` — ver lib/alunas/busca.
+ */
+export async function listarAlunas(): Promise<AlunaLista[]> {
+  const db = getServiceClient();
+  const { data, error } = await db
+    .from("alunas")
+    .select("id, nome, email, telefone, criado_em")
+    .order("nome", { ascending: true });
+  if (error !== null) throw new Error(`Falha ao listar alunas: ${error.message}`);
+  return (data ?? []) as AlunaLista[];
+}
+
+// Uma única query com as relações embutidas (PostgREST resolve tudo num request
+// só — sem N+1). Colunas explícitas para não trafegar dados desnecessários.
+export const SELECT_DOSSIE = `
+  id, nome, email, telefone, criado_em, metadata,
+  pagamentos ( id, origem, status, valor, vencimento, pago_em, referencia_externa ),
+  documentos ( id, tipo, status, origem, assinado_em, motivo_rejeicao, link_assinado ),
+  materiais ( id, nome_arquivo, tipo, link_drive, adicionado_em ),
+  formularios ( id, formulario_nome, respostas, respondido_em ),
+  reunioes ( id, origem, data_hora, status, link ),
+  tasks_asana ( id, task_id, titulo, status, criado_em, concluido_em )
+`;
+
+/**
+ * Carrega e monta o dossiê agregado de uma aluna. Retorna null se a aluna não
+ * existe. Reaproveitado pela rota GET /api/alunas/[id]/dossie e pela tela de
+ * detalhe. Lança com contexto em erro de banco.
+ */
+export async function carregarDossie(
+  id: string,
+  agora: Date = new Date(),
+): Promise<Dossie | null> {
+  const db = getServiceClient();
+  const { data, error } = await db
+    .from("alunas")
+    .select(SELECT_DOSSIE)
+    .eq("id", id)
+    .maybeSingle();
+  if (error !== null) throw new Error(`Falha ao carregar dossiê: ${error.message}`);
+  if (!data) return null;
+  return montarDossie(data as unknown as DossieRow, agora);
 }

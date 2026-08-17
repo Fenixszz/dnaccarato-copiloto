@@ -26,6 +26,9 @@ yarn-error.log*
 .env
 .env*.local
 .env.local
+# arquivos de ambiente reais (staging/produção) — só os *.example são versionados
+.env.staging
+.env.production
 
 # chaves de conta de serviço do Google (GCP) — NUNCA commitar
 copiloto-dnaccarato-*.json

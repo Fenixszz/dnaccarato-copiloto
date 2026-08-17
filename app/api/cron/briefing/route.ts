@@ -12,6 +12,12 @@ import { compromissosDeHoje } from "@/lib/integrations/agenda";
 import { enviarComRetry } from "@/lib/whatsapp/envio";
 import { normalizarTelefone } from "@/lib/matching/matcher";
 import { horaEmSaoPaulo } from "@/lib/tempo";
+import {
+  lerSaldo,
+  ultimaRecargaCentavos,
+  mediaConsumoDiarioCentavos,
+} from "@/lib/creditos";
+import { avaliarCreditos } from "@/lib/creditos/avaliacao";
 import type { Json } from "@/lib/db/types";
 
 export const dynamic = "force-dynamic";
@@ -64,8 +70,26 @@ export async function GET(request: Request): Promise<NextResponse> {
       logarErro(erro, { rota, resumo: { etapa: "agenda" } });
     }
 
+    // Aviso de créditos (transparência — nunca deve quebrar o briefing).
+    let avisoCredito: string | null = null;
+    try {
+      const [saldo, ultima, media] = await Promise.all([
+        lerSaldo(),
+        ultimaRecargaCentavos(),
+        mediaConsumoDiarioCentavos(7),
+      ]);
+      avisoCredito = avaliarCreditos({
+        saldoCentavos: saldo.saldoCentavos,
+        ultimaRecargaCentavos: ultima,
+        mediaDiariaCentavos: media,
+        pixChave: optionalEnv("PIX_CHAVE_JOAO") || null,
+      }).mensagem;
+    } catch (erro) {
+      logarErro(erro, { rota, resumo: { etapa: "credito" } });
+    }
+
     // 2. Mensagem.
-    const texto = gerarTextoBriefing(prioritizados, compromissos);
+    const texto = gerarTextoBriefing(prioritizados, compromissos, avisoCredito);
 
     // 3. Envia no WhatsApp da Adriana (retry + backoff; rate limiter dentro).
     const destino = normalizarTelefone(requireEnv("BRIEFING_WHATSAPP"));

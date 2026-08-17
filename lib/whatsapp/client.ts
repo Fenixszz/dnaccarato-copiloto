@@ -1,5 +1,7 @@
 import { optionalEnv, requireEnv } from "@/lib/env";
 import { whatsappRateLimiter } from "@/lib/whatsapp/rateLimiter";
+import { registrarUso } from "@/lib/creditos";
+import { custoWhatsappCentavos, tarifasDoEnv } from "@/lib/creditos/custos";
 
 /**
  * Client da Evolution API (WhatsApp) — conta Evolution API do João.
@@ -47,6 +49,17 @@ export async function enviarTexto(envio: EnvioTexto): Promise<ResultadoEnvio> {
       corpo = await resposta.json();
     } catch {
       corpo = null;
+    }
+
+    // Débito de crédito por mensagem enviada (só quando deu certo). Best-effort:
+    // nunca derruba o envio nem o retorno.
+    if (resposta.ok) {
+      await registrarUso({
+        servico: "whatsapp",
+        valorEstimadoCentavos: custoWhatsappCentavos(tarifasDoEnv()),
+        // Sem referência (evita guardar o telefone da aluna em creditos_uso).
+        referencia: null,
+      });
     }
 
     return { ok: resposta.ok, status: resposta.status, corpo };

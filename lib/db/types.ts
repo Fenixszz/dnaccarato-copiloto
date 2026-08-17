@@ -27,6 +27,7 @@ export type Database = {
           telefone: string | null;
           criado_em: string;
           metadata: Json;
+          anonimizada_em: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -37,6 +38,7 @@ export type Database = {
           telefone?: string | null;
           criado_em?: string;
           metadata?: Json;
+          anonimizada_em?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -47,6 +49,7 @@ export type Database = {
           telefone?: string | null;
           criado_em?: string;
           metadata?: Json;
+          anonimizada_em?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -537,12 +540,106 @@ export type Database = {
         };
         Relationships: [];
       };
+      creditos_saldo: {
+        Row: {
+          id: boolean;
+          saldo_centavos: number;
+          atualizado_em: string;
+        };
+        Insert: {
+          id?: boolean;
+          saldo_centavos?: number;
+          atualizado_em?: string;
+        };
+        Update: {
+          id?: boolean;
+          saldo_centavos?: number;
+          atualizado_em?: string;
+        };
+        Relationships: [];
+      };
+      creditos_uso: {
+        Row: {
+          id: string;
+          servico: string;
+          valor_estimado_centavos: number;
+          referencia: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          servico: string;
+          valor_estimado_centavos: number;
+          referencia?: string | null;
+          criado_em?: string;
+        };
+        Update: {
+          id?: string;
+          servico?: string;
+          valor_estimado_centavos?: number;
+          referencia?: string | null;
+          criado_em?: string;
+        };
+        Relationships: [];
+      };
+      creditos_recargas: {
+        Row: {
+          id: string;
+          valor_centavos: number;
+          registrada_por: string;
+          observacao: string | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          valor_centavos: number;
+          registrada_por: string;
+          observacao?: string | null;
+          criado_em?: string;
+        };
+        Update: {
+          id?: string;
+          valor_centavos?: number;
+          registrada_por?: string;
+          observacao?: string | null;
+          criado_em?: string;
+        };
+        Relationships: [];
+      };
+      chat_mensagens: {
+        Row: {
+          id: string;
+          usuario_id: string;
+          autor: string;
+          texto: string;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          usuario_id: string;
+          autor: string;
+          texto: string;
+          criado_em?: string;
+        };
+        Update: {
+          id?: string;
+          usuario_id?: string;
+          autor?: string;
+          texto?: string;
+          criado_em?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
       set_updated_at: {
+        Args: Record<PropertyKey, never>;
+        Returns: unknown;
+      };
+      set_atualizado_em: {
         Args: Record<PropertyKey, never>;
         Returns: unknown;
       };

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { logarErro } from "@/lib/webhooks/validation";
-import { registrarAuditoria } from "@/lib/db/queries";
 import { autenticarBearer, type TokenAutenticado } from "@/lib/mcp/auth";
-import { FERRAMENTAS, acharFerramenta, ErroFerramenta } from "@/lib/mcp/tools";
+import { FERRAMENTAS, acharFerramenta } from "@/lib/mcp/tools";
+import { executarFerramentaAuditada } from "@/lib/mcp/executar";
 
 export const dynamic = "force-dynamic";
 
@@ -118,35 +118,25 @@ export async function POST(request: Request): Promise<NextResponse> {
       }
 
       const alunaId = extrairAlunaId(args.data);
-      try {
-        const resultado = await ferramenta.executar(args.data);
-        await registrarAuditoria({
-          origem: "mcp",
-          acao: nome,
-          alunaId,
-          resultado: "sucesso",
-          detalhes: {
-            token_id: token.id,
-            ...(ferramenta.resumoAuditoria?.(args.data, resultado) ?? {}),
-          },
+      const exec = await executarFerramentaAuditada({
+        ferramenta,
+        args: args.data,
+        origem: "mcp",
+        alunaId,
+        detalhesBase: { token_id: token.id },
+      });
+      if (exec.ok) {
+        return ok(id, {
+          content: [{ type: "text", text: JSON.stringify(exec.resultado) }],
         });
-        return ok(id, { content: [{ type: "text", text: JSON.stringify(resultado) }] });
-      } catch (erro) {
-        await registrarAuditoria({
-          origem: "mcp",
-          acao: nome,
-          alunaId,
-          resultado: "erro",
-          detalhes: { token_id: token.id },
-        });
-        // Erro de negócio (ex.: aluna não encontrada) → mensagem clara e segura.
-        if (erro instanceof ErroFerramenta) {
-          return erroRpc(id, CODIGO_ERRO_FERRAMENTA, erro.message);
-        }
-        // Erro interno → não vaza detalhe.
-        logarErro(erro, { rota, resumo: { tool: nome } });
-        return erroRpc(id, ErrorCode.InternalError, "Erro ao executar a ferramenta.");
       }
+      // Erro de negócio (ex.: aluna não encontrada) → mensagem clara e segura.
+      if (exec.erroNegocio !== undefined) {
+        return erroRpc(id, CODIGO_ERRO_FERRAMENTA, exec.erroNegocio);
+      }
+      // Erro interno → não vaza detalhe.
+      logarErro(exec.erroInterno, { rota, resumo: { tool: nome } });
+      return erroRpc(id, ErrorCode.InternalError, "Erro ao executar a ferramenta.");
     }
 
     default:

@@ -5,7 +5,9 @@ import type { Database } from "@/lib/db/types";
  * Fake in-memory do cliente Supabase para testes de integração das rotas.
  *
  * Suporta o subconjunto do query builder usado pelas rotas:
- *   from(t).select(cols).eq(c,v)...limit(n)          → { data: Row[], error }
+ *   from(t).select(cols).eq(c,v).in(c,vs).gte(c,v).lt(c,v)...limit(n)
+ *                                                    → { data: Row[], error }
+ *   from(t).select("*", { count, head }).<filtros>   → { data, count, error }
  *   from(t).insert(row|rows)[.select().single()]     → { data, error }  (+ 23505)
  *   from(t).update(row).eq(c,v)[.select().single()]  → { data, error }
  *
@@ -34,16 +36,31 @@ function novoId(): string {
 
 interface Resultado {
   data: unknown;
+  count?: number | null;
   error: { code?: string; message: string } | null;
 }
 
+/** Compara dois valores tratando strings de data como instantes. */
+function comparar(a: unknown, b: unknown): number {
+  const ta = Date.parse(String(a));
+  const tb = Date.parse(String(b));
+  if (!Number.isNaN(ta) && !Number.isNaN(tb)) return ta - tb;
+  if (typeof a === "number" && typeof b === "number") return a - b;
+  return String(a) < String(b) ? -1 : String(a) > String(b) ? 1 : 0;
+}
+
 class Consulta {
-  private modo: "select" | "insert" | "update" = "select";
+  private modo: "select" | "insert" | "update" | "delete" = "select";
   private eqs: [string, unknown][] = [];
+  private ins: [string, unknown[]][] = [];
+  private gtes: [string, unknown][] = [];
+  private lts: [string, unknown][] = [];
   private aInserir: Row[] = [];
   private aAtualizar: Row = {};
   private retornar = false;
   private umSo = false;
+  private contar = false;
+  private head = false;
   private lim: number | undefined;
 
   constructor(
@@ -51,8 +68,10 @@ class Consulta {
     private readonly store: Record<string, Row[]>,
   ) {}
 
-  select(_cols?: string): this {
+  select(_cols?: string, opts?: { count?: string; head?: boolean }): this {
     this.retornar = true;
+    if (opts?.count !== undefined) this.contar = true;
+    if (opts?.head === true) this.head = true;
     return this;
   }
   insert(linhas: Row | Row[]): this {
@@ -65,8 +84,24 @@ class Consulta {
     this.aAtualizar = linha;
     return this;
   }
+  delete(): this {
+    this.modo = "delete";
+    return this;
+  }
   eq(coluna: string, valor: unknown): this {
     this.eqs.push([coluna, valor]);
+    return this;
+  }
+  in(coluna: string, valores: unknown[]): this {
+    this.ins.push([coluna, valores]);
+    return this;
+  }
+  gte(coluna: string, valor: unknown): this {
+    this.gtes.push([coluna, valor]);
+    return this;
+  }
+  lt(coluna: string, valor: unknown): this {
+    this.lts.push([coluna, valor]);
     return this;
   }
   limit(n: number): this {
@@ -89,7 +124,12 @@ class Consulta {
   }
 
   private casa(row: Row): boolean {
-    return this.eqs.every(([c, v]) => row[c] === v);
+    return (
+      this.eqs.every(([c, v]) => row[c] === v) &&
+      this.ins.every(([c, vs]) => vs.includes(row[c])) &&
+      this.gtes.every(([c, v]) => comparar(row[c], v) >= 0) &&
+      this.lts.every(([c, v]) => comparar(row[c], v) < 0)
+    );
   }
 
   private violaUnique(row: Row): boolean {
@@ -107,6 +147,10 @@ class Consulta {
     if (this.modo === "select") {
       let achados = linhas.filter((r) => this.casa(r));
       if (this.lim !== undefined) achados = achados.slice(0, this.lim);
+      // count/head: retorna só o total (head=true não traz linhas).
+      if (this.contar || this.head) {
+        return { data: this.head ? null : achados, count: achados.length, error: null };
+      }
       return { data: this.umSo ? (achados[0] ?? null) : achados, error: null };
     }
 
@@ -125,6 +169,14 @@ class Consulta {
       }
       if (!this.retornar) return { data: null, error: null };
       return { data: this.umSo ? (inseridos[0] ?? null) : inseridos, error: null };
+    }
+
+    if (this.modo === "delete") {
+      const removidos = linhas.filter((r) => this.casa(r));
+      const restantes = linhas.filter((r) => !this.casa(r));
+      this.store[this.tabela] = restantes;
+      if (!this.retornar) return { data: null, error: null };
+      return { data: this.umSo ? (removidos[0] ?? null) : removidos, error: null };
     }
 
     // update

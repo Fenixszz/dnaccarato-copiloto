@@ -72,11 +72,14 @@ export function priorizarFuros(
 
 /**
  * Monta o texto do briefing: "Bom dia, Adriana. X coisas hoje: ...", com os
- * furos priorizados e, no final, um resumo curto da agenda do dia (se houver).
+ * furos priorizados, um resumo curto da agenda do dia (se houver) e, por
+ * último, o aviso de créditos (só quando há algo a avisar — transparência, sem
+ * cobrança).
  */
 export function gerarTextoBriefing(
   prioritizados: FuroPriorizado[],
   compromissos: Compromisso[] = [],
+  avisoCredito: string | null = null,
 ): string {
   const linhas: string[] = [];
 
@@ -99,6 +102,11 @@ export function gerarTextoBriefing(
     linhas.push(
       `Na sua agenda hoje: ${n} ${n === 1 ? "compromisso" : "compromissos"} — ${itens}.`,
     );
+  }
+
+  if (avisoCredito !== null && avisoCredito !== "") {
+    linhas.push("");
+    linhas.push(`💳 ${avisoCredito}`);
   }
 
   return linhas.join("\n");
