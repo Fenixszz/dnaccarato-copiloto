@@ -28,6 +28,8 @@
     "asana:setup": "tsx scripts/asana-setup.ts",
     "whatsapp:setup": "tsx scripts/whatsapp-setup.ts",
     "whatsapp:setup:staging": "DOTENV_CONFIG_PATH=.env.staging tsx scripts/whatsapp-setup.ts",
+    "mcp:token": "tsx scripts/mcp-token.ts",
+    "mcp:token:staging": "DOTENV_CONFIG_PATH=.env.staging tsx scripts/mcp-token.ts",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build",
     "prepare": "husky"
   },
