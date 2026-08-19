@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { detectarFurosDeTodas } from "@/lib/matching/furos";
 import { EstadoVazio } from "../_components/estados";
-import { AcoesFuro } from "./acoes-furo";
-import { CORES_SEVERIDADE, RANK_SEVERIDADE, tituloTaskDoFuro } from "./rotulos";
+import { CORES_SEVERIDADE, RANK_SEVERIDADE } from "./rotulos";
 
 export const metadata: Metadata = { title: "Furos — Copiloto Dnaccarato" };
 
@@ -45,27 +44,21 @@ export default async function FurosPage() {
                 key={`${aluna.id}-${furo.tipo}-${i}`}
                 className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
               >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${CORES_SEVERIDADE[furo.severidade]}`}
-                      >
-                        {furo.severidade}
-                      </span>
-                      <Link
-                        href={`/alunas/${aluna.id}`}
-                        className="text-sm font-semibold text-slate-900 hover:underline"
-                      >
-                        {aluna.nome}
-                      </Link>
-                    </div>
-                    <p className="mt-1 text-sm text-slate-600">{furo.mensagem}</p>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${CORES_SEVERIDADE[furo.severidade]}`}
+                    >
+                      {furo.severidade}
+                    </span>
+                    <Link
+                      href={`/alunas/${aluna.id}`}
+                      className="text-sm font-semibold text-slate-900 hover:underline"
+                    >
+                      {aluna.nome}
+                    </Link>
                   </div>
-
-                  <div className="shrink-0">
-                    <AcoesFuro alunaId={aluna.id} tituloTask={tituloTaskDoFuro(furo)} />
-                  </div>
+                  <p className="mt-1 text-sm text-slate-600">{furo.mensagem}</p>
                 </div>
               </li>
             ))}
