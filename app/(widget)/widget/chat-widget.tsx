@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { MensagemChat } from "@/lib/integrations/anthropic";
 
@@ -91,11 +92,21 @@ export function ChatWidget({
 
   return (
     <div className="flex h-full flex-col">
-      <header className="shrink-0 border-b border-slate-200 bg-white px-4 py-3">
-        <h1 className="text-sm font-semibold text-slate-900">Atendimento</h1>
+      <header className="shrink-0 border-b border-marca-nevoa bg-white px-4 py-3">
+        <div className="mx-auto flex max-w-2xl items-center gap-2.5">
+          <Image
+            src="/marca/an-monograma.png"
+            alt="Adriana Naccarato"
+            width={28}
+            height={28}
+            className="h-6 w-6 object-contain"
+            priority
+          />
+          <h1 className="text-sm font-semibold text-marca-grafite">Atendimento</h1>
+        </div>
       </header>
 
-      {/* Histórico (canvas slate-50 herdado do layout) */}
+      {/* Histórico (canvas creme herdado do layout) */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <ul
           className="mx-auto flex max-w-2xl flex-col gap-3"
@@ -110,8 +121,8 @@ export function ChatWidget({
               <div
                 className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-4 py-2 text-sm ${
                   mensagem.autor === "usuario"
-                    ? "bg-slate-900 text-white"
-                    : "border border-slate-200 bg-white text-slate-900"
+                    ? "bg-marca-caramelo text-white"
+                    : "border border-marca-nevoa bg-white text-marca-grafite"
                 }`}
               >
                 {mensagem.texto}
@@ -121,7 +132,7 @@ export function ChatWidget({
 
           {enviando ? (
             <li className="self-start" aria-hidden>
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-400">
+              <div className="rounded-2xl border border-marca-nevoa bg-white px-4 py-2 text-sm text-marca-texto/70">
                 digitando…
               </div>
             </li>
@@ -132,14 +143,14 @@ export function ChatWidget({
 
       {/* Aviso de sessão + erro por mensagem */}
       {!autenticado ? (
-        <p className="mx-auto max-w-2xl px-4 pb-1 text-center text-xs text-slate-400">
+        <p className="mx-auto max-w-2xl px-4 pb-1 text-center text-xs text-marca-texto/70">
           Entre para conversar e manter seu histórico.
         </p>
       ) : null}
       {erro !== null ? (
         <p
           role="alert"
-          className="mx-auto max-w-2xl px-4 pb-1 text-center text-xs text-red-600"
+          className="mx-auto max-w-2xl px-4 pb-1 text-center text-xs text-marca-vinho"
         >
           {erro}
         </p>
@@ -147,7 +158,7 @@ export function ChatWidget({
 
       {/* Campo de texto */}
       <form
-        className="shrink-0 border-t border-slate-200 bg-white px-4 py-3"
+        className="shrink-0 border-t border-marca-nevoa bg-white px-4 py-3"
         onSubmit={(evento) => {
           evento.preventDefault();
           void enviar();
@@ -162,12 +173,12 @@ export function ChatWidget({
             disabled={!autenticado}
             placeholder={autenticado ? "Escreva sua mensagem…" : "Entre para conversar…"}
             aria-label="Sua mensagem"
-            className="max-h-32 min-h-[2.5rem] flex-1 resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-slate-400 disabled:bg-slate-50"
+            className="max-h-32 min-h-[2.5rem] flex-1 resize-none rounded-lg border border-marca-areia px-3 py-2 text-sm shadow-sm outline-none transition focus:border-marca-caramelo disabled:bg-marca-creme"
           />
           <button
             type="submit"
             disabled={!podeEnviar}
-            className="h-10 shrink-0 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+            className="h-10 shrink-0 rounded-lg bg-marca-caramelo px-4 text-sm font-medium text-white transition-colors hover:bg-marca-caramelo-escuro disabled:opacity-50"
           >
             Enviar
           </button>
@@ -175,8 +186,8 @@ export function ChatWidget({
 
         {/* Aviso de privacidade (LGPD): transparência sobre uso dos dados e
             direito de eliminação. Neutro/white-label, como o resto do widget. */}
-        <details className="mx-auto mt-2 max-w-2xl px-1 text-xs text-slate-400">
-          <summary className="cursor-pointer select-none hover:text-slate-600">
+        <details className="mx-auto mt-2 max-w-2xl px-1 text-xs text-marca-texto/70">
+          <summary className="cursor-pointer select-none hover:text-marca-caramelo">
             Aviso de privacidade
           </summary>
           <p className="mt-1 leading-relaxed">

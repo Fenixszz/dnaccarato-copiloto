@@ -4,7 +4,7 @@ import { z } from "zod";
 import { carregarDossie } from "@/lib/db/queries";
 import { DossieView } from "../../_components/dossie-view";
 
-export const metadata: Metadata = { title: "Dossiê da aluna — Copiloto Dnaccarato" };
+export const metadata: Metadata = { title: "Dossiê da aluna — Copiloto Naccarato" };
 
 // Dado sempre fresco: o dossiê reflete o estado atual do banco a cada acesso.
 export const dynamic = "force-dynamic";

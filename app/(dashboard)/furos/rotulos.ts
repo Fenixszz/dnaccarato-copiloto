@@ -14,9 +14,9 @@ export const RANK_SEVERIDADE: Record<Severidade, number> = {
 
 /** Classes Tailwind do badge de severidade. */
 export const CORES_SEVERIDADE: Record<Severidade, string> = {
-  critica: "bg-red-100 text-red-800",
-  alta: "bg-amber-100 text-amber-800",
-  media: "bg-slate-100 text-slate-700",
+  critica: "bg-marca-vinho/10 text-marca-vinho",
+  alta: "bg-marca-caramelo/15 text-marca-caramelo-escuro",
+  media: "bg-marca-nevoa text-marca-texto",
 };
 
 /** Título curto e acionável para a task do Asana criada a partir de um furo. */

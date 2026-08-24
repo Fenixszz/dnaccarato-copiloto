@@ -5,7 +5,7 @@ import { filtrarAlunas } from "@/lib/alunas/busca";
 import { formatarData } from "@/lib/formato";
 import { EstadoVazio } from "../_components/estados";
 
-export const metadata: Metadata = { title: "Alunas — Copiloto Dnaccarato" };
+export const metadata: Metadata = { title: "Alunas — Copiloto Naccarato" };
 
 // Dado sempre fresco: reflete o cadastro atual a cada acesso/busca.
 export const dynamic = "force-dynamic";
@@ -22,8 +22,8 @@ export default async function AlunasPage({
   return (
     <section className="mx-auto max-w-6xl px-6 py-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-slate-900">Alunas</h1>
-        <span className="text-sm text-slate-500">
+        <h1 className="text-xl font-semibold text-marca-grafite">Alunas</h1>
+        <span className="text-sm text-marca-texto">
           {alunas.length} de {todas.length}
         </span>
       </div>
@@ -36,18 +36,18 @@ export default async function AlunasPage({
           defaultValue={termo}
           placeholder="Buscar por nome, e-mail ou telefone…"
           aria-label="Buscar alunas"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-400 focus:outline-none"
+          className="w-full rounded-lg border border-marca-areia px-3 py-2 text-sm shadow-sm focus:border-marca-caramelo focus:outline-none"
         />
         <button
           type="submit"
-          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="rounded-lg bg-marca-caramelo px-4 py-2 text-sm font-medium text-white hover:bg-marca-caramelo-escuro"
         >
           Buscar
         </button>
         {termo ? (
           <Link
             href="/alunas"
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+            className="rounded-lg border border-marca-areia px-4 py-2 text-sm font-medium text-marca-grafite hover:bg-marca-nevoa"
           >
             Limpar
           </Link>
@@ -66,9 +66,9 @@ export default async function AlunasPage({
             descricao="Tente outro nome, e-mail ou telefone."
           />
         ) : (
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-marca-nevoa bg-white shadow-sm">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <thead className="border-b border-marca-nevoa bg-marca-creme text-xs uppercase tracking-wide text-marca-texto">
                 <tr>
                   <th className="px-4 py-3 font-medium">Nome</th>
                   <th className="px-4 py-3 font-medium">E-mail</th>
@@ -76,20 +76,22 @@ export default async function AlunasPage({
                   <th className="px-4 py-3 font-medium">Cadastro</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-marca-nevoa">
                 {alunas.map((aluna) => (
-                  <tr key={aluna.id} className="hover:bg-slate-50">
+                  <tr key={aluna.id} className="hover:bg-marca-creme">
                     <td className="px-4 py-3">
                       <Link
                         href={`/alunas/${aluna.id}`}
-                        className="font-medium text-slate-900 hover:text-slate-600 hover:underline"
+                        className="font-medium text-marca-grafite hover:text-marca-texto hover:underline"
                       >
                         {aluna.nome}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{aluna.email ?? "—"}</td>
-                    <td className="px-4 py-3 text-slate-600">{aluna.telefone ?? "—"}</td>
-                    <td className="px-4 py-3 text-slate-500">
+                    <td className="px-4 py-3 text-marca-texto">{aluna.email ?? "—"}</td>
+                    <td className="px-4 py-3 text-marca-texto">
+                      {aluna.telefone ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-marca-texto">
                       {formatarData(aluna.criado_em)}
                     </td>
                   </tr>

@@ -21,22 +21,22 @@ export function GraficoConsumoReal({
   return (
     <div>
       <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 text-sm">
-        <span className="text-slate-700">
+        <span className="text-marca-grafite">
           Real (Anthropic):{" "}
           <strong className="tabular-nums">{formatarUsd(totalCentavosUsd / 100)}</strong>
         </span>
-        <span className="text-slate-500">
+        <span className="text-marca-texto">
           Nossa estimativa:{" "}
           <span className="tabular-nums">{formatarMoeda(estimadoBrlCentavos / 100)}</span>
         </span>
       </div>
-      <p className="mt-1 text-xs text-slate-400">
+      <p className="mt-1 text-xs text-marca-texto/70">
         Moedas diferentes (US$ real × R$ estimado) — serve pra ver a ordem de grandeza e
         ajustar as tarifas se estiver muito fora.
       </p>
 
       {dias.length === 0 ? (
-        <p className="mt-4 text-sm text-slate-400">Sem dados de custo no período.</p>
+        <p className="mt-4 text-sm text-marca-texto/70">Sem dados de custo no período.</p>
       ) : (
         <div
           className="mt-4 flex h-28 items-end gap-0.5"
@@ -47,7 +47,7 @@ export function GraficoConsumoReal({
             <div
               key={d.data}
               title={`${formatarData(d.data)}: ${formatarUsd(d.centavosUsd / 100)}`}
-              className="flex-1 rounded-t bg-sky-500/70"
+              className="flex-1 rounded-t bg-marca-caramelo/70"
               style={{ height: `${Math.max(2, (d.centavosUsd / max) * 100)}%` }}
             />
           ))}

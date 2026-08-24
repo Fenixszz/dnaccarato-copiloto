@@ -1,20 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Nunito_Sans } from "next/font/google";
 import { redirect } from "next/navigation";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { emailPermitido } from "@/lib/auth/allowlist";
 import { LoginForm } from "./login-form";
-
-// Nunito Sans é a fonte oficial do site da Adriana (drinaccarato.com.br).
-const nunito = Nunito_Sans({
-  subsets: ["latin"],
-  weight: ["300", "400", "600", "700", "900"],
-  variable: "--fonte-marca",
-  display: "swap",
-  // Evita o warning "Failed to find font override values" do next/font com Nunito Sans.
-  adjustFontFallback: false,
-});
 
 export const metadata: Metadata = {
   title: "Entrar — Adriana Naccarato",
@@ -42,9 +31,7 @@ export default async function LoginPage({
       : undefined;
 
   return (
-    <main
-      className={`${nunito.variable} flex min-h-screen font-marca text-marca-grafite`}
-    >
+    <main className="flex min-h-screen text-marca-grafite">
       {/* Painel de marca — só em telas médias+ (identidade da Adriana) */}
       <aside className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-marca-caramelo to-marca-caramelo-escuro px-12 py-14 text-white lg:flex">
         {/* Textura sutil de brilho */}

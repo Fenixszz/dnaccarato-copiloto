@@ -8,9 +8,9 @@ import Link from "next/link";
 export type TomCard = "neutro" | "alerta" | "info";
 
 const TONS: Record<TomCard, { borda: string; valor: string }> = {
-  neutro: { borda: "border-l-slate-300", valor: "text-slate-900" },
-  alerta: { borda: "border-l-amber-500", valor: "text-amber-600" },
-  info: { borda: "border-l-sky-500", valor: "text-sky-700" },
+  neutro: { borda: "border-l-marca-areia", valor: "text-marca-grafite" },
+  alerta: { borda: "border-l-marca-vinho", valor: "text-marca-vinho" },
+  info: { borda: "border-l-marca-caramelo", valor: "text-marca-caramelo" },
 };
 
 export function CardMetrica({
@@ -34,15 +34,15 @@ export function CardMetrica({
 
   const conteudo = (
     <>
-      <p className="text-sm font-medium text-slate-500">{titulo}</p>
+      <p className="text-sm font-medium text-marca-texto">{titulo}</p>
       <p className={`mt-2 text-3xl font-semibold tabular-nums ${estilo.valor}`}>
         {valor}
       </p>
-      <p className="mt-1 text-xs text-slate-400">{descricao}</p>
+      <p className="mt-1 text-xs text-marca-texto/70">{descricao}</p>
     </>
   );
 
-  const classeBase = `block rounded-xl border border-l-4 border-slate-200 bg-white p-5 shadow-sm ${estilo.borda}`;
+  const classeBase = `block rounded-xl border border-l-4 border-marca-nevoa bg-white p-5 shadow-sm ${estilo.borda}`;
 
   if (href) {
     return (
@@ -56,10 +56,10 @@ export function CardMetrica({
 
 export function CardSkeleton() {
   return (
-    <div className="rounded-xl border border-l-4 border-slate-200 border-l-slate-200 bg-white p-5 shadow-sm">
-      <div className="h-4 w-24 animate-pulse rounded bg-slate-200" />
-      <div className="mt-3 h-8 w-12 animate-pulse rounded bg-slate-200" />
-      <div className="mt-2 h-3 w-32 animate-pulse rounded bg-slate-100" />
+    <div className="rounded-xl border border-l-4 border-marca-nevoa border-l-marca-areia bg-white p-5 shadow-sm">
+      <div className="h-4 w-24 animate-pulse rounded bg-marca-nevoa" />
+      <div className="mt-3 h-8 w-12 animate-pulse rounded bg-marca-nevoa" />
+      <div className="mt-2 h-3 w-32 animate-pulse rounded bg-marca-nevoa/60" />
     </div>
   );
 }

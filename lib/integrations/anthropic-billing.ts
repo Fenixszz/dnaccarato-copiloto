@@ -96,7 +96,7 @@ export async function alertarBillingAnthropic(detalhe: string): Promise<void> {
     if (!(await deveAvisarWhatsapp(agora))) return;
 
     const texto =
-      "⚠️ Copiloto Dnaccarato: a API da Anthropic recusou por *billing* " +
+      "⚠️ Copiloto Naccarato: a API da Anthropic recusou por *billing* " +
       "(saldo/cartão da conta FOVA). O copiloto está respondendo em fallback. " +
       "Resolva o pagamento na Anthropic pra normalizar — a Adriana não foi avisada.";
     const envio = await enviarComRetry(

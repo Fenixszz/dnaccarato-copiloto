@@ -12,7 +12,7 @@ export default async function DashboardHomePage() {
   if (resumo.alunasAtivas === 0) {
     return (
       <section className="mx-auto max-w-6xl px-6 py-8">
-        <h1 className="text-xl font-semibold text-slate-900">Painel do Copiloto</h1>
+        <h1 className="text-xl font-semibold text-marca-grafite">Painel do Copiloto</h1>
         <div className="mt-6">
           <EstadoVazio
             titulo="Nenhuma aluna cadastrada ainda."
@@ -25,8 +25,8 @@ export default async function DashboardHomePage() {
 
   return (
     <section className="mx-auto max-w-6xl px-6 py-8">
-      <h1 className="text-xl font-semibold text-slate-900">Painel do Copiloto</h1>
-      <p className="mt-1 text-sm text-slate-500">Visão geral de hoje.</p>
+      <h1 className="text-xl font-semibold text-marca-grafite">Painel do Copiloto</h1>
+      <p className="mt-1 text-sm text-marca-texto">Visão geral de hoje.</p>
 
       <div className="mt-6">
         <GradeCards>

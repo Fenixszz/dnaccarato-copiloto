@@ -18,15 +18,15 @@ export function EstadoErro({
   return (
     <div
       role="alert"
-      className="rounded-xl border border-red-200 bg-red-50 p-6 text-center"
+      className="rounded-xl border border-marca-vinho/20 bg-marca-vinho/5 p-6 text-center"
     >
-      <p className="text-sm font-medium text-red-800">{titulo}</p>
-      <p className="mt-1 text-sm text-red-600">{descricao}</p>
+      <p className="text-sm font-medium text-marca-vinho">{titulo}</p>
+      <p className="mt-1 text-sm text-marca-vinho/80">{descricao}</p>
       {reset ? (
         <button
           type="button"
           onClick={reset}
-          className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+          className="mt-4 rounded-lg bg-marca-vinho px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-marca-vinho/90"
         >
           Tentar de novo
         </button>
@@ -43,9 +43,9 @@ export function EstadoVazio({
   descricao?: string;
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
-      <p className="text-sm font-medium text-slate-700">{titulo}</p>
-      {descricao ? <p className="mt-1 text-sm text-slate-500">{descricao}</p> : null}
+    <div className="rounded-xl border border-dashed border-marca-areia bg-white p-10 text-center">
+      <p className="text-sm font-medium text-marca-grafite">{titulo}</p>
+      {descricao ? <p className="mt-1 text-sm text-marca-texto">{descricao}</p> : null}
     </div>
   );
 }

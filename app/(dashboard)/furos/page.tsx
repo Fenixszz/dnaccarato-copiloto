@@ -4,7 +4,7 @@ import { detectarFurosDeTodas } from "@/lib/matching/furos";
 import { EstadoVazio } from "../_components/estados";
 import { CORES_SEVERIDADE, RANK_SEVERIDADE } from "./rotulos";
 
-export const metadata: Metadata = { title: "Furos — Copiloto Dnaccarato" };
+export const metadata: Metadata = { title: "Furos — Copiloto Naccarato" };
 
 // Dado sempre fresco: reflete o estado atual de todas as alunas a cada acesso.
 export const dynamic = "force-dynamic";
@@ -23,12 +23,12 @@ export default async function FurosPage() {
     <section className="mx-auto max-w-5xl px-6 py-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Furos</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-xl font-semibold text-marca-grafite">Furos</h1>
+          <p className="mt-1 text-sm text-marca-texto">
             Pendências detectadas em todas as alunas, mais urgentes primeiro.
           </p>
         </div>
-        <span className="text-sm text-slate-500">{itens.length} no total</span>
+        <span className="text-sm text-marca-texto">{itens.length} no total</span>
       </div>
 
       <div className="mt-6">
@@ -42,7 +42,7 @@ export default async function FurosPage() {
             {itens.map(({ aluna, furo }, i) => (
               <li
                 key={`${aluna.id}-${furo.tipo}-${i}`}
-                className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                className="rounded-xl border border-marca-nevoa bg-white p-4 shadow-sm"
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -53,12 +53,12 @@ export default async function FurosPage() {
                     </span>
                     <Link
                       href={`/alunas/${aluna.id}`}
-                      className="text-sm font-semibold text-slate-900 hover:underline"
+                      className="text-sm font-semibold text-marca-grafite hover:underline"
                     >
                       {aluna.nome}
                     </Link>
                   </div>
-                  <p className="mt-1 text-sm text-slate-600">{furo.mensagem}</p>
+                  <p className="mt-1 text-sm text-marca-texto">{furo.mensagem}</p>
                 </div>
               </li>
             ))}

@@ -19,13 +19,13 @@ export function CopiarPix({ chave }: { chave: string }) {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <code className="rounded-md bg-slate-100 px-3 py-1.5 text-sm text-slate-800">
+      <code className="rounded-md bg-marca-nevoa px-3 py-1.5 text-sm text-marca-grafite">
         {chave}
       </code>
       <button
         type="button"
         onClick={copiar}
-        className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+        className="rounded-lg border border-marca-areia px-3 py-1.5 text-sm font-medium text-marca-grafite hover:bg-marca-nevoa"
       >
         {copiado ? "Copiado! ✓" : "Copiar chave"}
       </button>

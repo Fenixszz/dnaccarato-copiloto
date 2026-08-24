@@ -21,7 +21,7 @@ import { CopiarPix } from "./copiar-pix";
 import { RegistrarRecarga } from "./recarga-form";
 import { GraficoConsumoReal } from "./grafico-consumo";
 
-export const metadata: Metadata = { title: "Créditos — Copiloto Dnaccarato" };
+export const metadata: Metadata = { title: "Créditos — Copiloto Naccarato" };
 
 // Dado sempre fresco: o saldo reflete o estado atual a cada acesso.
 export const dynamic = "force-dynamic";
@@ -29,7 +29,7 @@ export const dynamic = "force-dynamic";
 const SEMAFORO: Record<CorSemaforo, { ponto: string; texto: string; rotulo: string }> = {
   verde: { ponto: "bg-emerald-500", texto: "text-emerald-700", rotulo: "Tranquilo" },
   amarelo: { ponto: "bg-amber-500", texto: "text-amber-700", rotulo: "Atenção" },
-  vermelho: { ponto: "bg-red-500", texto: "text-red-700", rotulo: "Baixo" },
+  vermelho: { ponto: "bg-marca-vinho", texto: "text-marca-vinho", rotulo: "Baixo" },
 };
 
 const ROTULO_SERVICO: Record<string, string> = {
@@ -39,8 +39,8 @@ const ROTULO_SERVICO: Record<string, string> = {
 
 function Bloco({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-sm font-semibold text-slate-900">{titulo}</h2>
+    <div className="rounded-xl border border-marca-nevoa bg-white p-6 shadow-sm">
+      <h2 className="text-sm font-semibold text-marca-grafite">{titulo}</h2>
       <div className="mt-3">{children}</div>
     </div>
   );
@@ -88,14 +88,14 @@ export default async function CreditosPage() {
   return (
     <section className="mx-auto max-w-3xl space-y-6 px-6 py-8">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Créditos</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="text-xl font-semibold text-marca-grafite">Créditos</h1>
+        <p className="mt-1 text-sm text-marca-texto">
           Medidor de transparência do custo do copiloto.
         </p>
       </div>
 
       {/* ===== Saldo em destaque, com semáforo (ambos) ===== */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-xl border border-marca-nevoa bg-white p-6 shadow-sm">
         <div className="flex items-center gap-2">
           <span
             className={`inline-block h-2.5 w-2.5 rounded-full ${cor.ponto}`}
@@ -105,14 +105,14 @@ export default async function CreditosPage() {
         </div>
         <p
           className={`mt-2 text-4xl font-semibold tabular-nums ${
-            saldo.saldoCentavos < 0 ? "text-red-600" : "text-slate-900"
+            saldo.saldoCentavos < 0 ? "text-marca-vinho" : "text-marca-grafite"
           }`}
         >
           {formatarMoeda(saldo.saldoCentavos / 100)}
         </p>
-        <p className="mt-1 text-sm text-slate-600">{fraseDias}</p>
+        <p className="mt-1 text-sm text-marca-texto">{fraseDias}</p>
         {/* Frase tranquilizadora (ambos) */}
-        <p className="mt-3 rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
+        <p className="mt-3 rounded-lg bg-marca-creme p-3 text-xs text-marca-texto">
           Fica tranquila: o serviço <strong>não para</strong> se o saldo acabar. O
           copiloto continua respondendo e enviando tudo normalmente — isto aqui é só pra
           você acompanhar o gasto e saber quando vale a pena recarregar.
@@ -122,32 +122,32 @@ export default async function CreditosPage() {
       {/* ===== Extrato de uso por categoria (ambos) ===== */}
       <Bloco titulo="Uso por categoria">
         {totalUsado === 0 ? (
-          <p className="text-sm text-slate-400">Nenhum consumo registrado ainda.</p>
+          <p className="text-sm text-marca-texto/70">Nenhum consumo registrado ainda.</p>
         ) : (
           <table className="w-full text-left text-sm">
-            <thead className="text-xs uppercase tracking-wide text-slate-400">
+            <thead className="text-xs uppercase tracking-wide text-marca-texto/70">
               <tr>
                 <th className="py-1 font-medium">Categoria</th>
                 <th className="py-1 font-medium">Eventos</th>
                 <th className="py-1 text-right font-medium">Gasto</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-marca-nevoa">
               {extrato.map((e) => (
                 <tr key={e.servico}>
-                  <td className="py-2 text-slate-700">
+                  <td className="py-2 text-marca-grafite">
                     {ROTULO_SERVICO[e.servico] ?? e.servico}
                   </td>
-                  <td className="py-2 tabular-nums text-slate-500">{e.eventos}</td>
-                  <td className="py-2 text-right tabular-nums text-slate-800">
+                  <td className="py-2 tabular-nums text-marca-texto">{e.eventos}</td>
+                  <td className="py-2 text-right tabular-nums text-marca-grafite">
                     {formatarMoeda(e.totalCentavos / 100)}
                   </td>
                 </tr>
               ))}
               <tr className="font-medium">
-                <td className="py-2 text-slate-700">Total</td>
+                <td className="py-2 text-marca-grafite">Total</td>
                 <td className="py-2" />
-                <td className="py-2 text-right tabular-nums text-slate-900">
+                <td className="py-2 text-right tabular-nums text-marca-grafite">
                   {formatarMoeda(totalUsado / 100)}
                 </td>
               </tr>
@@ -159,20 +159,22 @@ export default async function CreditosPage() {
       {/* ===== Histórico de recargas (ambos) ===== */}
       <Bloco titulo="Histórico de recargas">
         {recargas.length === 0 ? (
-          <p className="text-sm text-slate-400">Nenhuma recarga registrada ainda.</p>
+          <p className="text-sm text-marca-texto/70">Nenhuma recarga registrada ainda.</p>
         ) : (
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-marca-nevoa">
             {recargas.map((r) => (
               <li key={r.id} className="flex items-center justify-between py-2 text-sm">
                 <div>
-                  <span className="font-medium tabular-nums text-slate-800">
+                  <span className="font-medium tabular-nums text-marca-grafite">
                     {formatarMoeda(r.valorCentavos / 100)}
                   </span>
                   {r.observacao ? (
-                    <span className="ml-2 text-slate-500">{r.observacao}</span>
+                    <span className="ml-2 text-marca-texto">{r.observacao}</span>
                   ) : null}
                 </div>
-                <span className="text-xs text-slate-400">{formatarData(r.criadoEm)}</span>
+                <span className="text-xs text-marca-texto/70">
+                  {formatarData(r.criadoEm)}
+                </span>
               </li>
             ))}
           </ul>
@@ -184,18 +186,18 @@ export default async function CreditosPage() {
         <Bloco titulo="Adicionar créditos">
           {pixChave ? (
             <>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-marca-texto">
                 Faça um Pix para o João usando a chave abaixo:
               </p>
               <div className="mt-3">
                 <CopiarPix chave={pixChave} />
               </div>
-              <p className="mt-3 text-xs text-slate-400">
+              <p className="mt-3 text-xs text-marca-texto/70">
                 Depois de enviar, o valor aparece aqui assim que for confirmado.
               </p>
             </>
           ) : (
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-marca-texto/70">
               Chave Pix não configurada (defina PIX_CHAVE_JOAO no ambiente).
             </p>
           )}
@@ -205,7 +207,7 @@ export default async function CreditosPage() {
       {/* ===== Registrar recarga — só o João ===== */}
       {ehJoao ? (
         <Bloco titulo="Recarga recebida">
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-marca-texto/70">
             Some ao saldo um Pix que você confirmou ter recebido.
           </p>
           <div className="mt-3">
@@ -218,7 +220,7 @@ export default async function CreditosPage() {
       {ehJoao && consumoReal.estado !== "indisponivel" ? (
         <Bloco titulo="Consumo real de IA — últimos 30 dias">
           {consumoReal.estado === "erro" ? (
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-marca-texto/70">
               Não foi possível carregar o consumo real da Anthropic agora.
             </p>
           ) : (
