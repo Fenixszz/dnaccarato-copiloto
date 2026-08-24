@@ -6,9 +6,10 @@ import { login, type LoginState } from "./actions";
 const ESTADO_INICIAL: LoginState = { erro: null };
 
 const CLASSE_CAMPO =
-  "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-60";
+  "w-full rounded-lg border border-marca-areia bg-white px-3.5 py-2.5 text-sm text-marca-grafite shadow-sm outline-none transition placeholder:text-marca-texto/60 focus:border-marca-caramelo focus:ring-2 focus:ring-marca-caramelo/25 disabled:cursor-not-allowed disabled:opacity-60";
 
-const CLASSE_LABEL = "mb-1.5 block text-sm font-medium text-slate-700";
+const CLASSE_LABEL =
+  "mb-1.5 block text-xs font-semibold uppercase tracking-wide text-marca-texto";
 
 function BotaoEntrar() {
   // `pending` é o estado de loading da própria submissão do form.
@@ -18,7 +19,7 @@ function BotaoEntrar() {
       type="submit"
       disabled={pending}
       aria-busy={pending}
-      className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:from-indigo-500 hover:to-violet-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+      className="mt-1 flex w-full items-center justify-center gap-2 rounded-lg bg-marca-caramelo px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-marca-caramelo/25 transition hover:bg-marca-caramelo-escuro focus:outline-none focus:ring-2 focus:ring-marca-caramelo/40 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
     >
       {pending ? (
         <>
@@ -66,7 +67,7 @@ export function LoginForm({ proximo }: { proximo?: string }) {
           id="email"
           name="email"
           type="email"
-          placeholder="voce@dnaccarato.com.br"
+          placeholder="voce@drinaccarato.com.br"
           autoComplete="email"
           required
           autoFocus
@@ -93,10 +94,10 @@ export function LoginForm({ proximo }: { proximo?: string }) {
         <p
           role="alert"
           aria-live="polite"
-          className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-sm text-rose-700"
+          className="flex items-start gap-2 rounded-lg border border-marca-vinho/20 bg-marca-vinho/5 px-3.5 py-2.5 text-sm text-marca-vinho"
         >
           <svg
-            className="mt-0.5 h-4 w-4 shrink-0 text-rose-500"
+            className="mt-0.5 h-4 w-4 shrink-0 text-marca-vinho"
             viewBox="0 0 20 20"
             fill="currentColor"
             aria-hidden

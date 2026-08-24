@@ -1,11 +1,23 @@
 import type { Metadata } from "next";
+import Image from "next/image";
+import { Nunito_Sans } from "next/font/google";
 import { redirect } from "next/navigation";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { emailPermitido } from "@/lib/auth/allowlist";
 import { LoginForm } from "./login-form";
 
+// Nunito Sans é a fonte oficial do site da Adriana (drinaccarato.com.br).
+const nunito = Nunito_Sans({
+  subsets: ["latin"],
+  weight: ["300", "400", "600", "700", "900"],
+  variable: "--fonte-marca",
+  display: "swap",
+  // Evita o warning "Failed to find font override values" do next/font com Nunito Sans.
+  adjustFontFallback: false,
+});
+
 export const metadata: Metadata = {
-  title: "Entrar — Copiloto Dnaccarato",
+  title: "Entrar — Adriana Naccarato",
 };
 
 /** Tela de login. Fica FORA do grupo (dashboard) — sem o gate de auth. */
@@ -30,44 +42,81 @@ export default async function LoginPage({
       : undefined;
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 px-4 py-12 text-slate-900">
-      {/* Fundo decorativo: gradiente suave + brilhos difusos */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-indigo-50"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-indigo-200/40 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-32 -right-16 h-80 w-80 rounded-full bg-violet-200/40 blur-3xl"
-      />
+    <main
+      className={`${nunito.variable} flex min-h-screen font-marca text-marca-grafite`}
+    >
+      {/* Painel de marca — só em telas médias+ (identidade da Adriana) */}
+      <aside className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-marca-caramelo to-marca-caramelo-escuro px-12 py-14 text-white lg:flex">
+        {/* Textura sutil de brilho */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/10 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-marca-vinho/20 blur-3xl"
+        />
 
-      <div className="relative w-full max-w-sm">
-        {/* Marca */}
-        <div className="mb-8 flex flex-col items-center text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-lg font-semibold text-white shadow-lg shadow-indigo-500/25 ring-1 ring-white/40">
-            CD
-          </div>
-          <h1 className="mt-5 text-2xl font-semibold tracking-tight text-slate-900">
-            Copiloto Dnaccarato
-          </h1>
-          <p className="mt-1.5 text-sm text-slate-500">
-            Acesso restrito. Entre com seu e-mail e senha.
+        <div className="relative flex items-center gap-3">
+          <Image
+            src="/marca/an-branca.png"
+            alt="Monograma Adriana Naccarato"
+            width={48}
+            height={48}
+            className="h-11 w-11 object-contain"
+            priority
+          />
+          <span className="text-sm font-semibold uppercase tracking-[0.28em]">
+            Adriana Naccarato
+          </span>
+        </div>
+
+        <div className="relative max-w-md">
+          <p className="font-light leading-snug text-white/80">Copiloto</p>
+          <h2 className="mt-2 text-4xl font-light leading-tight">
+            Você não precisa gritar
+            <br />
+            para ser <span className="font-semibold">ouvida.</span>
+          </h2>
+          <p className="mt-5 max-w-sm text-sm leading-relaxed text-white/70">
+            Posicione sua marca com estratégia e propósito. Este é o painel interno de
+            operação do escritório.
           </p>
         </div>
 
-        {/* Cartão */}
-        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-6 shadow-xl shadow-slate-900/5 backdrop-blur-sm sm:p-8">
-          <LoginForm proximo={proximo} />
-        </div>
-
-        <p className="mt-6 text-center text-xs text-slate-400">
-          Uso interno do escritório Dnaccarato.
+        <p className="relative text-xs tracking-wide text-white/50">
+          drinaccarato.com.br
         </p>
-      </div>
+      </aside>
+
+      {/* Painel do formulário */}
+      <section className="flex w-full items-center justify-center bg-marca-creme px-6 py-12 lg:w-1/2">
+        <div className="w-full max-w-sm">
+          {/* Marca compacta (aparece no mobile, onde o painel some) */}
+          <div className="mb-9 flex flex-col items-center text-center lg:items-start lg:text-left">
+            <Image
+              src="/marca/an-monograma.png"
+              alt="Monograma Adriana Naccarato"
+              width={64}
+              height={64}
+              className="h-14 w-14 object-contain lg:hidden"
+              priority
+            />
+            <h1 className="mt-4 text-2xl font-semibold tracking-tight text-marca-grafite lg:mt-0">
+              Bem-vinda de volta
+            </h1>
+            <p className="mt-1.5 text-sm text-marca-texto">
+              Acesso restrito. Entre com seu e-mail e senha.
+            </p>
+          </div>
+
+          <LoginForm proximo={proximo} />
+
+          <p className="mt-8 text-center text-xs text-marca-texto/80 lg:text-left">
+            Uso interno do escritório Adriana Naccarato.
+          </p>
+        </div>
+      </section>
     </main>
   );
 }
