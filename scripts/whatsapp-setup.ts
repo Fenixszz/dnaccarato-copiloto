@@ -15,12 +15,9 @@ import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { optionalEnv, requireEnv } from "@/lib/env";
 
-const EVENTOS = [
-  "MESSAGES_UPSERT",
-  "MESSAGES_UPDATE",
-  "SEND_MESSAGE",
-  "CONNECTION_UPDATE",
-];
+// O webhook do app só processa mensagens novas (event "messages.upsert").
+// Manter só esse evento evita encher `eventos_brutos` com ruído ignorado.
+const EVENTOS = ["MESSAGES_UPSERT"];
 
 function baseUrl(): string {
   const url = requireEnv("EVOLUTION_API_URL").trim().replace(/\/$/, "");
