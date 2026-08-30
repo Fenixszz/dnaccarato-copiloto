@@ -12,6 +12,18 @@ import { requireEnv } from "@/lib/env";
 const API_BASE = "https://www.googleapis.com/drive/v3";
 export const MIME_PASTA = "application/vnd.google-apps.folder";
 
+/**
+ * Aceita o ID puro de uma pasta OU uma URL do Drive (colada do "Compartilhar",
+ * ex.: https://drive.google.com/drive/folders/<id>?usp=sharing) e devolve só o
+ * ID. O Drive rejeita a query se receber a URL inteira, então normalizamos aqui.
+ */
+export function idDePasta(valor: string): string {
+  const v = valor.trim();
+  const url = v.match(/\/folders\/([-\w]+)|[?&]id=([-\w]+)|\/d\/([-\w]+)/);
+  if (url) return url[1] ?? url[2] ?? url[3] ?? v;
+  return v;
+}
+
 async function driveFetch(caminho: string, init: RequestInit = {}): Promise<Response> {
   const token = await obterAccessToken();
   return fetch(`${API_BASE}${caminho}`, {
@@ -136,7 +148,7 @@ async function nomeSubpastaRaiz(
 export async function coletarNovosMateriais(
   pageToken: string,
 ): Promise<{ novoPageToken: string; itens: MaterialDrive[] }> {
-  const rootId = requireEnv("DRIVE_ROOT_FOLDER_ID");
+  const rootId = idDePasta(requireEnv("DRIVE_ROOT_FOLDER_ID"));
   const itens: MaterialDrive[] = [];
   const cacheSubpasta = new Map<string, string | null>();
 
