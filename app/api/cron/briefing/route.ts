@@ -11,7 +11,6 @@ import {
 import { compromissosDeHoje } from "@/lib/integrations/agenda";
 import { enviarComRetry } from "@/lib/whatsapp/envio";
 import { normalizarTelefone } from "@/lib/matching/matcher";
-import { inicioDeHojeSP } from "@/lib/tempo";
 import {
   lerSaldo,
   ultimaRecargaCentavos,
@@ -49,17 +48,21 @@ export async function GET(request: Request): Promise<NextResponse> {
     const forcar = new URL(request.url).searchParams.get("forcar") === "1";
     const db = getServiceClient();
 
-    // Idempotência: o cron é diário, então no máximo um briefing enviado por dia.
-    // Evita reenvio se a Vercel disparar o cron mais de uma vez no mesmo dia.
+    // Idempotência por JANELA RECENTE (6h), agnóstica de fuso: evita reenvio se
+    // a Vercel disparar o cron mais de uma vez. O cron é diário (24h), então 6h
+    // nunca suprime o briefing do dia seguinte, mas pega disparos duplicados.
+    // (Evita depender da virada de dia em SP, que o runtime da Vercel — em UTC —
+    // calcula errado à noite, fazendo o briefing reenviar.)
     if (!forcar) {
-      const { data: jaHoje, error: eJa } = await db
+      const desde = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+      const { data: recente, error: eJa } = await db
         .from("briefings_enviados")
         .select("id")
         .eq("status", "enviado")
-        .gte("enviado_em", inicioDeHojeSP())
+        .gte("enviado_em", desde)
         .limit(1);
-      if (eJa) throw new Error(`Falha ao checar briefing do dia: ${eJa.message}`);
-      if (jaHoje !== null && jaHoje.length > 0) {
+      if (eJa) throw new Error(`Falha ao checar briefing recente: ${eJa.message}`);
+      if (recente !== null && recente.length > 0) {
         return NextResponse.json({ status: "ja_enviado_hoje" });
       }
     }
