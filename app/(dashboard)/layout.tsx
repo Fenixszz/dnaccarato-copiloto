@@ -29,44 +29,43 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen bg-marca-creme text-marca-grafite">
       <header className="border-b border-marca-nevoa bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-2.5">
-              <Image
-                src="/marca/an-monograma.png"
-                alt="Adriana Naccarato"
-                width={32}
-                height={32}
-                className="h-7 w-7 object-contain"
-                priority
-              />
-              <span className="text-sm font-semibold tracking-tight">
-                Copiloto Naccarato
-              </span>
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:flex-nowrap sm:px-6">
+          <Link href="/" className="flex items-center gap-2.5">
+            <Image
+              src="/marca/an-monograma.png"
+              alt="Adriana Naccarato"
+              width={32}
+              height={32}
+              className="h-7 w-7 object-contain"
+              priority
+            />
+            <span className="text-sm font-semibold tracking-tight">
+              Copiloto Naccarato
+            </span>
+          </Link>
+          {/* No celular o menu vai para a própria linha (rolável); no desktop fica inline. */}
+          <nav className="order-last flex w-full items-center gap-5 overflow-x-auto whitespace-nowrap text-sm text-marca-texto sm:order-none sm:w-auto sm:overflow-visible">
+            <Link href="/" className="transition-colors hover:text-marca-caramelo">
+              Início
             </Link>
-            <nav className="flex items-center gap-5 text-sm text-marca-texto">
-              <Link href="/" className="transition-colors hover:text-marca-caramelo">
-                Início
-              </Link>
-              <Link
-                href="/alunas"
-                className="transition-colors hover:text-marca-caramelo"
-              >
-                Alunas
-              </Link>
-              <Link href="/furos" className="transition-colors hover:text-marca-caramelo">
-                Furos
-              </Link>
-              <Link
-                href="/creditos"
-                className="transition-colors hover:text-marca-caramelo"
-              >
-                Créditos
-              </Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-marca-texto">{user.email}</span>
+            <Link href="/alunas" className="transition-colors hover:text-marca-caramelo">
+              Alunas
+            </Link>
+            <Link href="/furos" className="transition-colors hover:text-marca-caramelo">
+              Furos
+            </Link>
+            <Link
+              href="/creditos"
+              className="transition-colors hover:text-marca-caramelo"
+            >
+              Créditos
+            </Link>
+          </nav>
+          <div className="ml-auto flex items-center gap-3">
+            {/* E-mail só a partir de sm — no celular ele estourava a largura. */}
+            <span className="hidden text-sm text-marca-texto sm:inline">
+              {user.email}
+            </span>
             <form action={signout}>
               <button
                 type="submit"

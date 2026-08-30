@@ -86,7 +86,7 @@ export default async function CreditosPage() {
       : "Sem consumo suficiente ainda pra estimar os dias.";
 
   return (
-    <section className="mx-auto max-w-3xl space-y-6 px-6 py-8">
+    <section className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6">
       <div>
         <h1 className="text-xl font-semibold text-marca-grafite">Créditos</h1>
         <p className="mt-1 text-sm text-marca-texto">

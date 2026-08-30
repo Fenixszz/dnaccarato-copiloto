@@ -66,7 +66,7 @@ export default async function DashboardHomePage() {
   // Estado vazio: sistema ainda sem alunas cadastradas (nada a resumir).
   if (m.alunasAtivas === 0) {
     return (
-      <section className="mx-auto max-w-6xl px-6 py-8">
+      <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <h1 className="text-2xl font-semibold text-marca-grafite">Painel do Copiloto</h1>
         <div className="mt-6">
           <EstadoVazio
@@ -86,7 +86,7 @@ export default async function DashboardHomePage() {
   }).format(new Date());
 
   return (
-    <section className="mx-auto max-w-6xl space-y-6 px-6 py-8">
+    <section className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
       <div>
         <h1 className="text-2xl font-semibold text-marca-grafite">Painel do Copiloto</h1>
         <p className="mt-1 text-sm capitalize text-marca-texto">{hoje}</p>

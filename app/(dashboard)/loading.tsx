@@ -1,7 +1,7 @@
 /** Estado de loading da home: esqueleto no mesmo shape do painel. */
 export default function Loading() {
   return (
-    <section className="mx-auto max-w-6xl space-y-6 px-6 py-8">
+    <section className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
       <div>
         <div className="h-8 w-56 animate-pulse rounded bg-marca-nevoa" />
         <div className="mt-2 h-4 w-40 animate-pulse rounded bg-marca-nevoa/60" />

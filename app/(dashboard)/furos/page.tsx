@@ -20,7 +20,7 @@ export default async function FurosPage() {
     );
 
   return (
-    <section className="mx-auto max-w-5xl px-6 py-8">
+    <section className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-marca-grafite">Furos</h1>

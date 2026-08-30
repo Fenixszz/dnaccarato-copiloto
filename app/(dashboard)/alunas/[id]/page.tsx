@@ -17,7 +17,7 @@ export default async function AlunaDossiePage({ params }: { params: { id: string
   if (dossie === null) notFound();
 
   return (
-    <section className="mx-auto max-w-4xl px-6 py-8">
+    <section className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
       <DossieView dossie={dossie} />
     </section>
   );

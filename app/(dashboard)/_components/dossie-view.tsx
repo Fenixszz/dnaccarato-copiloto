@@ -101,32 +101,40 @@ export function DossieView({ dossie }: { dossie: Dossie }) {
         {pagamentos.itens.length === 0 ? (
           <Vazio texto="Nenhum pagamento registrado." />
         ) : (
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs uppercase tracking-wide text-marca-texto/70">
-              <tr>
-                <th className="py-1 font-medium">Origem</th>
-                <th className="py-1 font-medium">Status</th>
-                <th className="py-1 font-medium">Valor</th>
-                <th className="py-1 font-medium">Vencimento</th>
-                <th className="py-1 font-medium">Pago em</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-marca-nevoa">
-              {pagamentos.itens.map((p) => (
-                <tr key={p.id}>
-                  <td className="py-2 text-marca-texto">{p.origem}</td>
-                  <td className="py-2">
-                    <Badge status={p.status} />
-                  </td>
-                  <td className="py-2 tabular-nums text-marca-grafite">
-                    {formatarMoeda(p.valor)}
-                  </td>
-                  <td className="py-2 text-marca-texto">{formatarData(p.vencimento)}</td>
-                  <td className="py-2 text-marca-texto">{formatarData(p.pago_em)}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-xs uppercase tracking-wide text-marca-texto/70">
+                <tr>
+                  <th className="hidden py-1 font-medium sm:table-cell">Origem</th>
+                  <th className="py-1 font-medium">Status</th>
+                  <th className="py-1 font-medium">Valor</th>
+                  <th className="py-1 font-medium">Vencimento</th>
+                  <th className="hidden py-1 font-medium sm:table-cell">Pago em</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-marca-nevoa">
+                {pagamentos.itens.map((p) => (
+                  <tr key={p.id}>
+                    <td className="hidden py-2 text-marca-texto sm:table-cell">
+                      {p.origem}
+                    </td>
+                    <td className="py-2">
+                      <Badge status={p.status} />
+                    </td>
+                    <td className="py-2 tabular-nums text-marca-grafite">
+                      {formatarMoeda(p.valor)}
+                    </td>
+                    <td className="py-2 text-marca-texto">
+                      {formatarData(p.vencimento)}
+                    </td>
+                    <td className="hidden py-2 text-marca-texto sm:table-cell">
+                      {formatarData(p.pago_em)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Secao>
 

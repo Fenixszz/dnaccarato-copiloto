@@ -1,7 +1,7 @@
 /** Estado de loading da tela de furos. */
 export default function Loading() {
   return (
-    <section className="mx-auto max-w-5xl px-6 py-8">
+    <section className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <h1 className="text-xl font-semibold text-marca-grafite">Furos</h1>
       <div className="mt-6 space-y-3">
         {Array.from({ length: 5 }).map((_, i) => (

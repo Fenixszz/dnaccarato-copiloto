@@ -1,7 +1,7 @@
 /** Estado de loading do dossiê da aluna. */
 export default function Loading() {
   return (
-    <section className="mx-auto max-w-4xl px-6 py-8">
+    <section className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
       <div className="h-4 w-32 animate-pulse rounded bg-marca-nevoa" />
       <div className="mt-3 h-7 w-64 animate-pulse rounded bg-marca-nevoa" />
       <div className="mt-2 h-4 w-80 animate-pulse rounded bg-marca-nevoa" />

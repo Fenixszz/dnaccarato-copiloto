@@ -20,7 +20,7 @@ export default async function AlunasPage({
   const alunas = filtrarAlunas(todas, termo);
 
   return (
-    <section className="mx-auto max-w-6xl px-6 py-8">
+    <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-marca-grafite">Alunas</h1>
         <span className="text-sm text-marca-texto">
@@ -67,37 +67,43 @@ export default async function AlunasPage({
           />
         ) : (
           <div className="overflow-hidden rounded-xl border border-marca-nevoa bg-white shadow-sm">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-marca-nevoa bg-marca-creme text-xs uppercase tracking-wide text-marca-texto">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Nome</th>
-                  <th className="px-4 py-3 font-medium">E-mail</th>
-                  <th className="px-4 py-3 font-medium">Telefone</th>
-                  <th className="px-4 py-3 font-medium">Cadastro</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-marca-nevoa">
-                {alunas.map((aluna) => (
-                  <tr key={aluna.id} className="hover:bg-marca-creme">
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/alunas/${aluna.id}`}
-                        className="font-medium text-marca-grafite hover:text-marca-texto hover:underline"
-                      >
-                        {aluna.nome}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-marca-texto">{aluna.email ?? "—"}</td>
-                    <td className="px-4 py-3 text-marca-texto">
-                      {aluna.telefone ?? "—"}
-                    </td>
-                    <td className="px-4 py-3 text-marca-texto">
-                      {formatarData(aluna.criado_em)}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-marca-nevoa bg-marca-creme text-xs uppercase tracking-wide text-marca-texto">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Nome</th>
+                    <th className="hidden px-4 py-3 font-medium md:table-cell">E-mail</th>
+                    <th className="px-4 py-3 font-medium">Telefone</th>
+                    <th className="hidden px-4 py-3 font-medium sm:table-cell">
+                      Cadastro
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-marca-nevoa">
+                  {alunas.map((aluna) => (
+                    <tr key={aluna.id} className="hover:bg-marca-creme">
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/alunas/${aluna.id}`}
+                          className="font-medium text-marca-grafite hover:text-marca-texto hover:underline"
+                        >
+                          {aluna.nome}
+                        </Link>
+                      </td>
+                      <td className="hidden px-4 py-3 text-marca-texto md:table-cell">
+                        {aluna.email ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 text-marca-texto">
+                        {aluna.telefone ?? "—"}
+                      </td>
+                      <td className="hidden px-4 py-3 text-marca-texto sm:table-cell">
+                        {formatarData(aluna.criado_em)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

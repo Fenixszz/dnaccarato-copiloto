@@ -1,7 +1,7 @@
 /** Estado de loading da lista de alunas. */
 export default function Loading() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-8">
+    <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <h1 className="text-xl font-semibold text-marca-grafite">Alunas</h1>
       <div className="mt-4 h-10 w-full animate-pulse rounded-lg bg-marca-nevoa" />
       <div className="mt-6 overflow-hidden rounded-xl border border-marca-nevoa bg-white shadow-sm">
