@@ -11,7 +11,7 @@ import {
 import { compromissosDeHoje } from "@/lib/integrations/agenda";
 import { enviarComRetry } from "@/lib/whatsapp/envio";
 import { normalizarTelefone } from "@/lib/matching/matcher";
-import { horaEmSaoPaulo } from "@/lib/tempo";
+import { inicioDeHojeSP } from "@/lib/tempo";
 import {
   lerSaldo,
   ultimaRecargaCentavos,
@@ -25,9 +25,9 @@ export const dynamic = "force-dynamic";
 /**
  * Briefing diário — chamado pelo Cron da Vercel.
  *
- * O cron da Vercel dispara de hora em hora (vercel.json); esta rota só executa
- * o envio quando a hora em America/Sao_Paulo == BRIEFING_HORA (assim a Adriana
- * escolhe o horário via env, sem redeploy). Passe ?forcar=1 para disparar já.
+ * O cron da Vercel dispara 1x/dia (vercel.json: `0 10 * * *` = 07:00 em
+ * America/Sao_Paulo). Esta rota envia no máximo UM briefing por dia
+ * (idempotência via `briefings_enviados`). Passe ?forcar=1 para reenviar já.
  *
  * Protegida: exige Authorization: Bearer <CRON_SECRET> (a Vercel injeta esse
  * header automaticamente quando CRON_SECRET está definido).
@@ -46,16 +46,22 @@ export async function GET(request: Request): Promise<NextResponse> {
       return NextResponse.json({ erro: "Não autorizado." }, { status: 401 });
     }
 
-    // Só no horário escolhido (a menos que force manualmente).
-    const horaAlvo = Number.parseInt(optionalEnv("BRIEFING_HORA", "8"), 10);
-    const horaAgora = horaEmSaoPaulo();
     const forcar = new URL(request.url).searchParams.get("forcar") === "1";
-    if (!forcar && horaAgora !== horaAlvo) {
-      return NextResponse.json({
-        status: "fora_do_horario",
-        hora: horaAgora,
-        alvo: horaAlvo,
-      });
+    const db = getServiceClient();
+
+    // Idempotência: o cron é diário, então no máximo um briefing enviado por dia.
+    // Evita reenvio se a Vercel disparar o cron mais de uma vez no mesmo dia.
+    if (!forcar) {
+      const { data: jaHoje, error: eJa } = await db
+        .from("briefings_enviados")
+        .select("id")
+        .eq("status", "enviado")
+        .gte("enviado_em", inicioDeHojeSP())
+        .limit(1);
+      if (eJa) throw new Error(`Falha ao checar briefing do dia: ${eJa.message}`);
+      if (jaHoje !== null && jaHoje.length > 0) {
+        return NextResponse.json({ status: "ja_enviado_hoje" });
+      }
     }
 
     // 1. Furos de todas as alunas → prioriza (top 2-3).
@@ -99,7 +105,6 @@ export async function GET(request: Request): Promise<NextResponse> {
     );
 
     // 4. Salva o histórico.
-    const db = getServiceClient();
     const metadata: Record<string, Json> = {
       furos: prioritizados.length,
       compromissos: compromissos.length,

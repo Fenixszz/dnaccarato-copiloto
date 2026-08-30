@@ -28,6 +28,8 @@ vi.mock("@/lib/db/client", () => {
     const q = {
       select: () => q,
       eq: () => q,
+      gte: () => q,
+      limit: () => q,
       insert: (row: unknown) => {
         (h.inseridos[tabela] ??= []).push(row);
         return q;
@@ -47,17 +49,6 @@ vi.mock("@/lib/integrations/agenda", () => ({
 import { GET } from "@/app/api/cron/briefing/route";
 
 const SECRET = "cron-secreto";
-
-function horaSP(): number {
-  return Number.parseInt(
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/Sao_Paulo",
-      hour: "2-digit",
-      hour12: false,
-    }).format(new Date()),
-    10,
-  );
-}
 
 function chamar(opts: { auth?: boolean; forcar?: boolean } = {}): Promise<Response> {
   const headers: Record<string, string> = {};
@@ -92,8 +83,12 @@ beforeEach(() => {
   h.enviarComRetry.mockResolvedValue({ ok: true, tentativas: 1 });
   process.env.CRON_SECRET = SECRET;
   process.env.BRIEFING_WHATSAPP = "+55 11 99999-0000";
-  process.env.BRIEFING_HORA = String(horaSP());
 });
+
+/** Marca que JÁ houve um briefing enviado hoje (para testar a idempotência). */
+function jaEnviadoHoje(): void {
+  h.porTabela.briefings_enviados = { data: [{ id: "b-hoje" }], error: null };
+}
 
 describe("GET /api/cron/briefing", () => {
   it("recusa sem Authorization (401)", async () => {
@@ -107,14 +102,14 @@ describe("GET /api/cron/briefing", () => {
     expect((await chamar()).status).toBe(401);
   });
 
-  it("fora do horário: não envia", async () => {
-    process.env.BRIEFING_HORA = String((horaSP() + 1) % 24);
+  it("já enviado hoje: não reenvia", async () => {
+    jaEnviadoHoje();
     const res = await chamar();
-    expect((await res.json()).status).toBe("fora_do_horario");
+    expect((await res.json()).status).toBe("ja_enviado_hoje");
     expect(h.enviarComRetry).not.toHaveBeenCalled();
   });
 
-  it("no horário: detecta, prioriza, envia e salva em briefings_enviados", async () => {
+  it("detecta, prioriza, envia e salva em briefings_enviados", async () => {
     h.porTabela.alunas = alunasComFuro();
     h.compromissosDeHoje.mockResolvedValue([{ hora: "14:00", titulo: "Call 4E" }]);
 
@@ -133,8 +128,8 @@ describe("GET /api/cron/briefing", () => {
     expect(hist).toMatchObject({ canal: "whatsapp", status: "enviado" });
   });
 
-  it("pode ser forçado fora do horário com ?forcar=1", async () => {
-    process.env.BRIEFING_HORA = String((horaSP() + 1) % 24);
+  it("?forcar=1 reenvia mesmo já tendo enviado hoje", async () => {
+    jaEnviadoHoje();
     h.porTabela.alunas = { data: [], error: null };
     const res = await chamar({ forcar: true });
     expect((await res.json()).status).toBe("enviado");
