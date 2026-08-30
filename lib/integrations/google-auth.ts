@@ -24,15 +24,18 @@ import { requireEnv } from "@/lib/env";
  */
 
 /**
- * Escopos concedidos ao token impersonado. DEVEM bater exatamente com os
- * autorizados na domain-wide delegation, senão o Google recusa o token.
- * Para enviar e-mail pelo Gmail no futuro, acrescente "gmail.send".
+ * Escopos concedidos ao token impersonado. DEVEM ser um subconjunto dos
+ * autorizados na domain-wide delegation, senão o Google recusa o token INTEIRO
+ * (unauthorized_client). O app só LÊ (agenda, drive, gmail, respostas de forms),
+ * então usamos os escopos READ-ONLY — menor privilégio: o copiloto não pode
+ * alterar nem apagar nada da conta da Adriana.
+ * Se um dia precisar escrever (ex.: enviar e-mail = "gmail.send", criar evento =
+ * "calendar"), acrescente o escopo aqui E autorize-o na delegation do Workspace.
  */
 export const ESCOPOS_GOOGLE = [
-  "https://www.googleapis.com/auth/drive",
-  "https://www.googleapis.com/auth/gmail.modify",
-  "https://www.googleapis.com/auth/calendar",
-  "https://www.googleapis.com/auth/forms.body.readonly",
+  "https://www.googleapis.com/auth/drive.readonly",
+  "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/calendar.readonly",
   "https://www.googleapis.com/auth/forms.responses.readonly",
 ] as const;
 

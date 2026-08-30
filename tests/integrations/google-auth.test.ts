@@ -33,8 +33,9 @@ describe("getGoogleClient", () => {
     const jwt = mod.getGoogleClient();
     expect(jwt.email).toBe(CONTA.client_email);
     expect(jwt.subject).toBe("adriana@dominio.com");
-    expect(jwt.scopes).toContain("https://www.googleapis.com/auth/drive");
-    expect(jwt.scopes).toContain("https://www.googleapis.com/auth/calendar");
+    // Escopos read-only (o app só lê; menor privilégio).
+    expect(jwt.scopes).toContain("https://www.googleapis.com/auth/drive.readonly");
+    expect(jwt.scopes).toContain("https://www.googleapis.com/auth/calendar.readonly");
   });
 
   it("faz cache do cliente por conjunto de escopos", async () => {
