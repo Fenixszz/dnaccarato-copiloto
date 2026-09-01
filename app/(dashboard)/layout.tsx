@@ -54,6 +54,9 @@ export default async function DashboardLayout({
             <Link href="/furos" className="transition-colors hover:text-marca-caramelo">
               Furos
             </Link>
+            <Link href="/tarefas" className="transition-colors hover:text-marca-caramelo">
+              Tarefas
+            </Link>
             <Link
               href="/creditos"
               className="transition-colors hover:text-marca-caramelo"
