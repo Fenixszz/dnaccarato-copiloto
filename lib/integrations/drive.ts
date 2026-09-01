@@ -84,17 +84,26 @@ export async function criarWatchChanges(params: {
   address: string;
   token: string;
   pageToken: string;
+  /**
+   * Expiração do canal em epoch ms (string). Opcional: se ausente, o Google usa
+   * o default (curto, ~1h). Passando ~7 dias (o máximo concedido), o canal dura
+   * bem mais, e o cron `/api/cron/drive-watch` renova antes de expirar.
+   */
+  expiration?: string;
 }): Promise<CanalWatch> {
+  const corpo: Record<string, unknown> = {
+    id: params.id,
+    type: "web_hook",
+    address: params.address,
+    token: params.token,
+  };
+  if (params.expiration !== undefined) corpo.expiration = params.expiration;
+
   const resposta = await driveFetch(
     `/changes/watch?pageToken=${encodeURIComponent(params.pageToken)}`,
     {
       method: "POST",
-      body: JSON.stringify({
-        id: params.id,
-        type: "web_hook",
-        address: params.address,
-        token: params.token,
-      }),
+      body: JSON.stringify(corpo),
     },
   );
   if (!resposta.ok) {

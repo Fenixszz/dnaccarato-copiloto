@@ -26,7 +26,13 @@ async function main(): Promise<void> {
   const pageToken = await getStartPageToken();
   await salvarEstado("drive_page_token", { pageToken });
 
-  const canal = await criarWatchChanges({ id: randomUUID(), address, token, pageToken });
+  const canal = await criarWatchChanges({
+    id: randomUUID(),
+    address,
+    token,
+    pageToken,
+    expiration: String(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  });
 
   console.log("✅ Watch do Drive criado.");
   console.log(`  address:    ${address}`);
