@@ -151,13 +151,20 @@ export function ProximasReunioes({
           {reunioes.map((r) => (
             <li key={r.id} className="flex items-center gap-3">
               <span
-                className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-marca-caramelo"
+                className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${
+                  r.fonte === "calendly" ? "bg-marca-caramelo" : "bg-marca-agua"
+                }`}
                 aria-hidden
               />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-marca-grafite">
-                  {r.aluna_nome}
-                </p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-sm font-medium text-marca-grafite">
+                    {r.titulo}
+                  </p>
+                  <span className="shrink-0 rounded-full bg-marca-nevoa px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-marca-texto">
+                    {r.fonte === "calendly" ? "Calendly" : "Agenda"}
+                  </span>
+                </div>
                 <p className="text-xs capitalize text-marca-texto">
                   {formatarDataHora(r.data_hora)}
                 </p>

@@ -42,6 +42,52 @@ function horaDoEvento(start: EventoCalendar["start"]): string {
   return "dia todo";
 }
 
+/** Um evento futuro da agenda, normalizado para a lista de reuniões da home. */
+export interface EventoAgenda {
+  id: string;
+  titulo: string;
+  /** Início em ISO (só eventos COM horário — "dia todo" é descartado). */
+  inicioIso: string;
+}
+
+interface EventoCalendarBruto {
+  id?: string;
+  summary?: string;
+  start?: { dateTime?: string; date?: string };
+}
+
+/**
+ * Próximos eventos COM horário da agenda principal (janela de `dias` dias, até
+ * `max` eventos), para compor a lista "Próximas reuniões" do dashboard junto
+ * com as reuniões do Calendly. Eventos "dia todo" (só `date`, sem `dateTime`)
+ * são descartados — são marcadores (ex.: "Home"), não reuniões.
+ */
+export async function proximosEventosAgenda(
+  dias = 14,
+  max = 15,
+  agora: Date = new Date(),
+): Promise<EventoAgenda[]> {
+  const fim = new Date(agora.getTime() + dias * 24 * 60 * 60 * 1000);
+
+  const resposta = (await listarEventos("primary", {
+    timeMin: agora.toISOString(),
+    timeMax: fim.toISOString(),
+    singleEvents: "true",
+    orderBy: "startTime",
+    maxResults: String(max),
+  })) as { items?: EventoCalendarBruto[] };
+
+  return (resposta.items ?? [])
+    .filter((ev): ev is EventoCalendarBruto & { start: { dateTime: string } } =>
+      Boolean(ev.start?.dateTime),
+    )
+    .map((ev) => ({
+      id: ev.id ?? `agenda-${ev.start.dateTime}`,
+      titulo: ev.summary ?? "(sem título)",
+      inicioIso: ev.start.dateTime,
+    }));
+}
+
 /**
  * Leitura simples da Google Agenda: os compromissos de HOJE (consulta feita na
  * hora de montar o briefing — não é webhook). Retorna já no formato do briefing.

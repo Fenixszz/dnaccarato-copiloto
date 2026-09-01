@@ -8,12 +8,11 @@ import { intervaloSemanaSP } from "@/lib/tempo";
 import { detectarFurosDeTodas } from "@/lib/matching/furos";
 import { lerSaldo } from "@/lib/creditos";
 import { agregarPainel, type MetricasPainel } from "@/lib/painel/metricas";
+import { proximosEventosAgenda } from "@/lib/integrations/agenda";
+import { combinarProximasReunioes, type ReuniaoUnificada } from "@/lib/reunioes/proximas";
 
-export interface ProximaReuniao {
-  id: string;
-  data_hora: string;
-  aluna_nome: string;
-}
+/** Item da lista "Próximas reuniões" (Calendly + Google Agenda). */
+export type ProximaReuniao = ReuniaoUnificada;
 
 export interface ResumoFuros {
   total: number;
@@ -37,31 +36,37 @@ export async function carregarPainelInicio(
   const { inicio, fim } = intervaloSemanaSP(agora);
   const agoraIso = agora.toISOString();
 
-  const [alunas, pagamentos, documentos, semana, proximas, furosPorAluna, saldo] =
+  const [alunas, pagamentos, documentos, proximas, furosPorAluna, saldo] =
     await Promise.all([
       db.from("alunas").select("criado_em"),
       db.from("pagamentos").select("status, valor, pago_em"),
       db.from("documentos").select("status"),
       db
         .from("reunioes")
-        .select("*", { count: "exact", head: true })
-        .gte("data_hora", inicio)
-        .lt("data_hora", fim),
-      db
-        .from("reunioes")
         .select("id, data_hora, aluna:alunas(nome)")
         .gte("data_hora", agoraIso)
         .neq("status", "cancelada")
         .order("data_hora", { ascending: true })
-        .limit(5),
+        .limit(30),
       detectarFurosDeTodas(agora),
       lerSaldo(),
     ]);
 
-  for (const r of [alunas, pagamentos, documentos, semana, proximas]) {
+  for (const r of [alunas, pagamentos, documentos, proximas]) {
     if (r.error !== null) {
       throw new Error(`Falha ao carregar o painel: ${r.error.message}`);
     }
+  }
+
+  // Google Agenda (best-effort — a home NUNCA quebra se o Google falhar).
+  let eventosAgenda: Awaited<ReturnType<typeof proximosEventosAgenda>> = [];
+  try {
+    eventosAgenda = await proximosEventosAgenda(14, 15, agora);
+  } catch (erro) {
+    console.error(
+      "Painel: falha ao ler a agenda (segue só com Calendly):",
+      erro instanceof Error ? erro.message : erro,
+    );
   }
 
   const metricas = agregarPainel(
@@ -77,9 +82,9 @@ export async function carregarPainelInicio(
     agora,
   );
 
-  // Normaliza o join da aluna (PostgREST devolve objeto pra relação to-one,
-  // mas o tipo gerado pode vir como array — tratamos os dois).
-  const proximasReunioes: ProximaReuniao[] = (
+  // Reuniões do Calendly (tabela). Normaliza o join da aluna (PostgREST devolve
+  // objeto pra relação to-one, mas o tipo gerado pode vir como array).
+  const reunioesCalendly: ReuniaoUnificada[] = (
     (proximas.data ?? []) as {
       id: string;
       data_hora: string | null;
@@ -92,9 +97,25 @@ export async function carregarPainelInicio(
       return {
         id: r.id,
         data_hora: r.data_hora as string,
-        aluna_nome: aluna?.nome ?? "Aluna",
+        titulo: aluna?.nome ?? "Aluna",
+        fonte: "calendly" as const,
       };
     });
+
+  // Eventos com horário da Google Agenda.
+  const reunioesAgenda: ReuniaoUnificada[] = eventosAgenda.map((e) => ({
+    id: e.id,
+    data_hora: e.inicioIso,
+    titulo: e.titulo,
+    fonte: "agenda" as const,
+  }));
+
+  // Mescla as duas fontes: dedup por instante (Calendly ganha), ordena, conta a
+  // semana e corta a lista exibida.
+  const { proximas: proximasReunioes, totalSemana } = combinarProximasReunioes(
+    [...reunioesCalendly, ...reunioesAgenda],
+    { inicio, fim },
+  );
 
   const furos = furosPorAluna.reduce<ResumoFuros>(
     (acc, { furos: lista }) => {
@@ -111,7 +132,7 @@ export async function carregarPainelInicio(
 
   return {
     metricas,
-    reunioesSemana: semana.count ?? 0,
+    reunioesSemana: totalSemana,
     proximasReunioes,
     furos,
     saldoCentavos: saldo.saldoCentavos,
