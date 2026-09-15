@@ -101,6 +101,51 @@ export async function buscarTask(taskGid: string): Promise<TaskAsana> {
   return json.data;
 }
 
+export interface SecaoAsana {
+  gid: string;
+  name: string;
+}
+
+/** Lista as seções (colunas) de um projeto. */
+export async function listarSecoes(projectGid: string): Promise<SecaoAsana[]> {
+  const resposta = await asanaFetch(
+    `/projects/${encodeURIComponent(projectGid)}/sections?opt_fields=name&limit=100`,
+  );
+  if (!resposta.ok) {
+    throw new Error(`Asana: falha ao listar seções (HTTP ${resposta.status}).`);
+  }
+  const json = (await resposta.json()) as { data: SecaoAsana[] };
+  return json.data ?? [];
+}
+
+/** Lista as tarefas (cards) de uma seção, com estado de conclusão. */
+export async function listarTarefasDaSecao(sectionGid: string): Promise<TaskAsana[]> {
+  const tarefas: TaskAsana[] = [];
+  let offset: string | undefined;
+  do {
+    const params = new URLSearchParams({
+      opt_fields: "name,completed,completed_at",
+      limit: "100",
+    });
+    if (offset) params.set("offset", offset);
+    const resposta = await asanaFetch(
+      `/sections/${encodeURIComponent(sectionGid)}/tasks?${params.toString()}`,
+    );
+    if (!resposta.ok) {
+      throw new Error(
+        `Asana: falha ao listar tarefas da seção (HTTP ${resposta.status}).`,
+      );
+    }
+    const json = (await resposta.json()) as {
+      data: TaskAsana[];
+      next_page?: { offset: string } | null;
+    };
+    tarefas.push(...(json.data ?? []));
+    offset = json.next_page?.offset;
+  } while (offset);
+  return tarefas;
+}
+
 /**
  * Valida a assinatura HMAC-SHA256 do header `X-Hook-Signature` sobre o corpo
  * cru, usando o X-Hook-Secret capturado no handshake. Tempo constante.

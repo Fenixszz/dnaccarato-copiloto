@@ -4,6 +4,7 @@ import { comTratamentoDeErro, logarErro } from "@/lib/webhooks/validation";
 import { requireEnv, optionalEnv } from "@/lib/env";
 import { getStartPageToken, criarWatchChanges } from "@/lib/integrations/drive";
 import { salvarEstado } from "@/lib/db/queries";
+import { sincronizarTarefasAsana } from "@/lib/asana/sincronizarTarefas";
 
 export const dynamic = "force-dynamic";
 
@@ -51,11 +52,23 @@ export async function GET(request: Request): Promise<NextResponse> {
       expiration: String(Date.now() + VALIDADE_MS),
     });
 
+    // Piggyback: sincroniza as tarefas do Asana (coluna CONSULTORIA) no mesmo
+    // cron diário — evita gastar um 2º slot de cron (limite do plano Hobby).
+    // Best-effort: falha aqui não derruba a renovação do watch do Drive.
+    let asana: unknown = { status: "pulado" };
+    try {
+      asana = await sincronizarTarefasAsana();
+    } catch (erro) {
+      logarErro(erro, { rota, resumo: { etapa: "asana-sync" } });
+      asana = { status: "falhou" };
+    }
+
     return NextResponse.json({
       status: "renovado",
       channelId: canal.id,
       resourceId: canal.resourceId,
       expira: canal.expiration ? new Date(Number(canal.expiration)).toISOString() : null,
+      asana,
     });
   });
 }

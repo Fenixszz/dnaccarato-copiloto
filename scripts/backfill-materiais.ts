@@ -12,11 +12,17 @@
 import "dotenv/config";
 import { requireEnv } from "@/lib/env";
 import { getServiceClient } from "@/lib/db/client";
-import { listarSubpastas, listarArquivosDaPasta } from "@/lib/integrations/drive";
+import {
+  idDePasta,
+  listarSubpastas,
+  listarArquivosDaPasta,
+} from "@/lib/integrations/drive";
 import { acharAlunaPorNomePasta, upsertMaterial } from "@/lib/materiais";
 
 async function main(): Promise<void> {
-  const root = requireEnv("DRIVE_ROOT_FOLDER_ID");
+  // DRIVE_ROOT_FOLDER_ID pode ser a URL do "Compartilhar"; extrai só o ID
+  // (mesmo tratamento do webhook em coletarNovosMateriais).
+  const root = idDePasta(requireEnv("DRIVE_ROOT_FOLDER_ID"));
   const db = getServiceClient();
 
   const { data: alunas, error } = await db.from("alunas").select("id, nome");
