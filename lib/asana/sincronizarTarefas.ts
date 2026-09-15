@@ -76,23 +76,12 @@ async function upsertTarefa(
     status: statusDaTarefa(card.completed),
     concluido_em: card.completed ? (card.completed_at ?? null) : null,
   };
-  const { data, error } = await db
+  // Upsert atômico (INSERT ... ON CONFLICT (task_id) DO UPDATE): idempotente e
+  // imune à corrida de select-depois-insert (réplica de leitura defasada).
+  const { error } = await db
     .from("tasks_asana")
-    .select("id")
-    .eq("task_id", card.gid)
-    .limit(1);
-  if (error) throw new Error(`Falha ao buscar tarefa existente: ${error.message}`);
-  const existente = data?.[0];
-  if (existente) {
-    const { error: eUp } = await db
-      .from("tasks_asana")
-      .update(registro)
-      .eq("id", existente.id);
-    if (eUp) throw new Error(`Falha ao atualizar tarefa: ${eUp.message}`);
-  } else {
-    const { error: eIns } = await db.from("tasks_asana").insert(registro);
-    if (eIns) throw new Error(`Falha ao inserir tarefa: ${eIns.message}`);
-  }
+    .upsert(registro, { onConflict: "task_id" });
+  if (error) throw new Error(`Falha ao gravar tarefa: ${error.message}`);
 }
 
 export interface ResultadoSyncAsana {
