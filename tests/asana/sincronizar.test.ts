@@ -10,6 +10,8 @@ const ALUNAS = [
   { id: "2", nome: "Rafaela Fera" },
   { id: "3", nome: "Marina Motta" },
   { id: "4", nome: "Ana Clara" },
+  { id: "5", nome: "Antonella Bacchin" },
+  { id: "6", nome: "Guilherme Velloso" },
 ];
 
 describe("normalizarNomeCard", () => {
@@ -29,9 +31,11 @@ describe("statusDaTarefa", () => {
 });
 
 describe("resolverAlunaId", () => {
-  it("usa apelidos confirmados (DUDA → Maria Eduarda, Rafa → Rafaela)", () => {
+  it("usa apelidos confirmados (DUDA, Rafa, Antonella, Guilherme Veloso)", () => {
     expect(resolverAlunaId("DUDA -", ALUNAS)).toBe("1");
     expect(resolverAlunaId("Rafa", ALUNAS)).toBe("2");
+    expect(resolverAlunaId("Antonella", ALUNAS)).toBe("5");
+    expect(resolverAlunaId("Guilherme Veloso ", ALUNAS)).toBe("6");
   });
 
   it("casa por nome quando não há apelido", () => {

@@ -28,6 +28,8 @@ const SECAO_CONSULTORIA = "consultoria";
 export const APELIDOS_CARDS: Record<string, string> = {
   duda: "Maria Eduarda Kawamoto",
   rafa: "Rafaela Fera",
+  antonella: "Antonella Bacchin",
+  "guilherme veloso": "Guilherme Velloso", // card tem 1 "L" a menos que o cadastro
 };
 
 /** Limpa o nome do card: tira " -", espaços e traços do fim ("DUDA -" → "DUDA"). */
