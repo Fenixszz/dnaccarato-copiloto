@@ -47,4 +47,11 @@ describe("resolverAlunaId", () => {
     expect(resolverAlunaId("Evelyn", ALUNAS)).toBeNull();
     expect(resolverAlunaId("paula (belem)", ALUNAS)).toBeNull();
   });
+
+  it("fallback de nome exato evita duplicar (Evelyn já existe → casa)", () => {
+    const comEvelyn = [...ALUNAS, { id: "9", nome: "Evelyn" }];
+    expect(resolverAlunaId("Evelyn", comEvelyn)).toBe("9");
+    const comPaula = [...ALUNAS, { id: "10", nome: "paula (belem)" }];
+    expect(resolverAlunaId("paula (belem)", comPaula)).toBe("10");
+  });
 });

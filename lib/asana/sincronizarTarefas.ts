@@ -59,7 +59,15 @@ export function resolverAlunaId(
 ): string | null {
   const limpo = normalizarNomeCard(cardNome);
   const alvo = APELIDOS_CARDS[limpo.toLowerCase()] ?? limpo;
-  return acharAlunaPorNomePasta(alunas, alvo);
+  const porMatcher = acharAlunaPorNomePasta(alunas, alvo);
+  if (porMatcher) return porMatcher;
+  // Fallback: nome EXATO (case-insensitive). O matcher não casa nomes de uma só
+  // palavra consigo mesmos (ex.: "Evelyn"), o que fazia cada sync criar uma
+  // aluna nova. O exato garante idempotência.
+  const exato = alunas.find(
+    (a) => a.nome.trim().toLowerCase() === alvo.trim().toLowerCase(),
+  );
+  return exato?.id ?? null;
 }
 
 /** Upsert de uma tarefa (dedupe por task_id = gid do card). */
