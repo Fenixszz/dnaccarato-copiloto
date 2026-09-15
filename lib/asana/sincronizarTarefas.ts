@@ -94,8 +94,9 @@ async function upsertTarefa(
 
 export interface ResultadoSyncAsana {
   cards: number;
-  alunasCriadas: number;
   tarefas: number;
+  /** Nomes de cards sem aluna correspondente (NÃO criamos — evita duplicar). */
+  naoImportadas: string[];
 }
 
 /** Executa a sincronização completa da coluna CONSULTORIA. */
@@ -123,45 +124,36 @@ export async function sincronizarTarefasAsana(): Promise<ResultadoSyncAsana> {
     metadata: Record<string, unknown> | null;
   }[];
 
-  let alunasCriadas = 0;
   let tarefas = 0;
+  const naoImportadas: string[] = [];
 
   for (const card of cards) {
     const nome = normalizarNomeCard(card.name ?? "");
     if (!nome) continue;
 
-    let alunaId = resolverAlunaId(card.name ?? "", alunas);
+    const alunaId = resolverAlunaId(card.name ?? "", alunas);
 
+    // NÃO criamos aluna aqui: a leitura pode vir de réplica defasada e, sem
+    // unique por nome, isso duplicaria a cada rodada. Card sem aluna é
+    // reportado — a aluna é criada uma vez (Drive/manual) e o sync vincula.
     if (!alunaId) {
-      // Card sem aluna → cria já confirmada como mentorada (fonte da verdade).
-      const { data: nova, error: eIns } = await db
+      naoImportadas.push(nome);
+      continue;
+    }
+
+    // Aluna existente → confirma mentorada:true (ela está na CONSULTORIA).
+    const aluna = alunas.find((a) => a.id === alunaId);
+    const meta = (aluna?.metadata ?? {}) as Record<string, unknown>;
+    if (meta.mentorada !== true) {
+      await db
         .from("alunas")
-        .insert({ nome, metadata: { origem_cadastro: "asana", mentorada: true } })
-        .select("id, nome, metadata")
-        .single();
-      if (eIns || !nova) {
-        throw new Error(`Falha ao criar aluna do card "${nome}": ${eIns?.message}`);
-      }
-      alunaId = nova.id;
-      alunas.push(
-        nova as { id: string; nome: string; metadata: Record<string, unknown> },
-      );
-      alunasCriadas += 1;
-    } else {
-      // Aluna existente → confirma mentorada:true (ela está na CONSULTORIA).
-      const aluna = alunas.find((a) => a.id === alunaId);
-      const meta = (aluna?.metadata ?? {}) as Record<string, unknown>;
-      if (meta.mentorada !== true) {
-        await db
-          .from("alunas")
-          .update({ metadata: { ...meta, mentorada: true } })
-          .eq("id", alunaId);
-      }
+        .update({ metadata: { ...meta, mentorada: true } })
+        .eq("id", alunaId);
     }
 
     await upsertTarefa(db, alunaId, card, nome);
     tarefas += 1;
   }
 
-  return { cards: cards.length, alunasCriadas, tarefas };
+  return { cards: cards.length, tarefas, naoImportadas };
 }
