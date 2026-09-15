@@ -116,7 +116,12 @@ async function acharOuCriarAluna(
     nome: cliente.name ?? "Aluna sem nome (Asaas)",
     email,
     telefone,
-    metadata: { origem_cadastro: "asaas", asaas_customer_id: customerId },
+    // mentorada:false → não polui o dashboard; confirma-se depois se virar cliente
+    metadata: {
+      origem_cadastro: "asaas",
+      asaas_customer_id: customerId,
+      mentorada: false,
+    },
   };
   const { data, error } = await db.from("alunas").insert(nova).select("id").single();
   if (error || !data) {

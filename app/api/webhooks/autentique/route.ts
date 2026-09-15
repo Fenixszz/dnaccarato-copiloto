@@ -176,7 +176,10 @@ async function acharOuCriarAluna(db: SupabaseServer, contato: Contato): Promise<
     if (achado) return achado.id;
   }
 
-  const metadata: Record<string, string> = { origem_cadastro: "autentique" };
+  const metadata: Record<string, string | boolean> = {
+    origem_cadastro: "autentique",
+    mentorada: false,
+  };
   if (contato.cpf) metadata.cpf = contato.cpf;
 
   const { data, error } = await db

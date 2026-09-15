@@ -95,7 +95,7 @@ async function acharOuCriarAluna(
     nome,
     email,
     telefone: null,
-    metadata: { origem_cadastro: "forms" },
+    metadata: { origem_cadastro: "forms", mentorada: false },
   };
   const { data, error } = await db.from("alunas").insert(nova).select("id").single();
   if (error || !data) {

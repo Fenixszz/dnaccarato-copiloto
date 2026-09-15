@@ -29,6 +29,7 @@ vi.mock("@/lib/db/client", () => {
       select: () => q,
       eq: () => q,
       gte: () => q,
+      or: () => q,
       limit: () => q,
       insert: (row: unknown) => {
         (h.inseridos[tabela] ??= []).push(row);

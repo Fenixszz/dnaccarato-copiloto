@@ -10,6 +10,7 @@ import { lerSaldo } from "@/lib/creditos";
 import { agregarPainel, type MetricasPainel } from "@/lib/painel/metricas";
 import { proximosEventosAgenda } from "@/lib/integrations/agenda";
 import { combinarProximasReunioes, type ReuniaoUnificada } from "@/lib/reunioes/proximas";
+import { FILTRO_MENTORADAS_VISIVEIS } from "@/lib/mentoradas/filtro";
 
 /** Item da lista "Próximas reuniões" (Calendly + Google Agenda). */
 export type ProximaReuniao = ReuniaoUnificada;
@@ -38,7 +39,7 @@ export async function carregarPainelInicio(
 
   const [alunas, pagamentos, documentos, proximas, furosPorAluna, saldo] =
     await Promise.all([
-      db.from("alunas").select("criado_em"),
+      db.from("alunas").select("criado_em").or(FILTRO_MENTORADAS_VISIVEIS),
       db.from("pagamentos").select("status, valor, pago_em"),
       db.from("documentos").select("status"),
       db

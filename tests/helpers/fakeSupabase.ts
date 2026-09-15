@@ -55,6 +55,8 @@ class Consulta {
   private ins: [string, unknown[]][] = [];
   private gtes: [string, unknown][] = [];
   private lts: [string, unknown][] = [];
+  // Cada `.or(...)` vira um grupo de condições (OR interno); grupos são ANDados.
+  private ors: string[][] = [];
   private aInserir: Row[] = [];
   private aAtualizar: Row = {};
   private retornar = false;
@@ -104,6 +106,10 @@ class Consulta {
     this.lts.push([coluna, valor]);
     return this;
   }
+  or(condicoes: string): this {
+    this.ors.push(condicoes.split(","));
+    return this;
+  }
   limit(n: number): this {
     this.lim = n;
     return this;
@@ -123,12 +129,38 @@ class Consulta {
     return atual;
   }
 
+  /** Resolve o valor de uma coluna, suportando o path JSON `campo->>chave`. */
+  private valorColuna(row: Row, col: string): unknown {
+    if (col.includes("->>")) {
+      const [campo = "", chave = ""] = col.split("->>");
+      const obj = row[campo];
+      return obj !== null && typeof obj === "object"
+        ? (obj as Record<string, unknown>)[chave]
+        : undefined;
+    }
+    return row[col];
+  }
+
+  /** Avalia UMA condição do formato PostgREST `coluna.operador.valor`. */
+  private avaliaCondicao(row: Row, cond: string): boolean {
+    const partes = cond.split(".");
+    const col = partes[0] ?? "";
+    const op = partes[1] ?? "";
+    const val = partes.slice(2).join(".");
+    const atual = this.valorColuna(row, col);
+    if (op === "is") return val === "null" && (atual === null || atual === undefined);
+    if (op === "neq") return String(atual) !== val;
+    if (op === "eq") return String(atual) === val;
+    return false;
+  }
+
   private casa(row: Row): boolean {
     return (
       this.eqs.every(([c, v]) => row[c] === v) &&
       this.ins.every(([c, vs]) => vs.includes(row[c])) &&
       this.gtes.every(([c, v]) => comparar(row[c], v) >= 0) &&
-      this.lts.every(([c, v]) => comparar(row[c], v) < 0)
+      this.lts.every(([c, v]) => comparar(row[c], v) < 0) &&
+      this.ors.every((grupo) => grupo.some((cond) => this.avaliaCondicao(row, cond)))
     );
   }
 

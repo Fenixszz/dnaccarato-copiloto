@@ -3,6 +3,7 @@ import type { Json } from "@/lib/db/types";
 import { intervaloSemanaSP } from "@/lib/tempo";
 import { montarDossie, type Dossie, type DossieRow } from "@/lib/dossie";
 import type { AlunaLista } from "@/lib/alunas/busca";
+import { FILTRO_MENTORADAS_VISIVEIS } from "@/lib/mentoradas/filtro";
 
 export interface RegistroFalha {
   tipo: string;
@@ -148,7 +149,10 @@ export async function contarResumoDashboard(
   const { inicio, fim } = intervaloSemanaSP(agora);
 
   const [alunas, atraso, documentos, reunioes] = await Promise.all([
-    db.from("alunas").select("*", { count: "exact", head: true }),
+    db
+      .from("alunas")
+      .select("*", { count: "exact", head: true })
+      .or(FILTRO_MENTORADAS_VISIVEIS),
     db
       .from("pagamentos")
       .select("*", { count: "exact", head: true })
@@ -188,6 +192,7 @@ export async function listarAlunas(): Promise<AlunaLista[]> {
   const { data, error } = await db
     .from("alunas")
     .select("id, nome, email, telefone, criado_em")
+    .or(FILTRO_MENTORADAS_VISIVEIS)
     .order("nome", { ascending: true });
   if (error !== null) throw new Error(`Falha ao listar alunas: ${error.message}`);
   return (data ?? []) as AlunaLista[];

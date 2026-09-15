@@ -1,4 +1,5 @@
 import { getServiceClient } from "@/lib/db/client";
+import { FILTRO_MENTORADAS_VISIVEIS } from "@/lib/mentoradas/filtro";
 
 /**
  * Detector de "furos" (gaps operacionais) de uma aluna.
@@ -176,7 +177,10 @@ export async function detectarFurosDeTodas(
   agora: Date = new Date(),
 ): Promise<AlunaComFuros[]> {
   const db = getServiceClient();
-  const { data, error } = await db.from("alunas").select(SELECT_FUROS);
+  const { data, error } = await db
+    .from("alunas")
+    .select(SELECT_FUROS)
+    .or(FILTRO_MENTORADAS_VISIVEIS);
   if (error) throw new Error(`Falha ao carregar alunas: ${error.message}`);
 
   const linhas = (data ?? []) as (DadosAlunaFuros & { id: string; nome: string })[];
