@@ -12,6 +12,7 @@ import { requireEnv } from "@/lib/env";
 import {
   listarSecoes,
   listarTarefasDaSecao,
+  listarSubtarefas,
   type TaskAsana,
 } from "@/lib/integrations/asana";
 import { acharAlunaPorNomePasta } from "@/lib/materiais";
@@ -70,19 +71,20 @@ export function resolverAlunaId(
   return exato?.id ?? null;
 }
 
-/** Upsert de uma tarefa (dedupe por task_id = gid do card). */
+/** Upsert de uma tarefa (dedupe por task_id = gid da tarefa/subtarefa). */
 async function upsertTarefa(
   db: SupabaseServer,
   alunaId: string,
-  card: TaskAsana,
+  tarefa: TaskAsana,
   titulo: string,
 ): Promise<void> {
   const registro = {
     aluna_id: alunaId,
-    task_id: card.gid,
+    task_id: tarefa.gid,
     titulo,
-    status: statusDaTarefa(card.completed),
-    concluido_em: card.completed ? (card.completed_at ?? null) : null,
+    status: statusDaTarefa(tarefa.completed),
+    criado_em: tarefa.created_at ?? null,
+    concluido_em: tarefa.completed ? (tarefa.completed_at ?? null) : null,
   };
   // Upsert atômico (INSERT ... ON CONFLICT (task_id) DO UPDATE): idempotente e
   // imune à corrida de select-depois-insert (réplica de leitura defasada).
@@ -151,8 +153,18 @@ export async function sincronizarTarefasAsana(): Promise<ResultadoSyncAsana> {
         .eq("id", alunaId);
     }
 
-    await upsertTarefa(db, alunaId, card, nome);
-    tarefas += 1;
+    // Importa as SUBTAREFAS do card (as tarefas reais da mentorada).
+    const subtarefas = await listarSubtarefas(card.gid);
+    for (const sub of subtarefas) {
+      const titulo = (sub.name ?? "").trim();
+      if (!titulo) continue;
+      await upsertTarefa(db, alunaId, sub, titulo);
+      tarefas += 1;
+    }
+
+    // Remove o registro antigo do próprio card (quando importávamos o card como
+    // tarefa) — agora quem vira tarefa são as subtarefas.
+    await db.from("tasks_asana").delete().eq("task_id", card.gid);
   }
 
   return { cards: cards.length, tarefas, naoImportadas };

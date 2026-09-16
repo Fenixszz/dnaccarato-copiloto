@@ -87,6 +87,7 @@ export interface TaskAsana {
   name?: string;
   completed?: boolean;
   completed_at?: string | null;
+  created_at?: string | null;
 }
 
 /** Busca o estado atual de uma task (completed/completed_at) na Asana. */
@@ -124,7 +125,7 @@ export async function listarTarefasDaSecao(sectionGid: string): Promise<TaskAsan
   let offset: string | undefined;
   do {
     const params = new URLSearchParams({
-      opt_fields: "name,completed,completed_at",
+      opt_fields: "name,completed,completed_at,created_at",
       limit: "100",
     });
     if (offset) params.set("offset", offset);
@@ -144,6 +145,18 @@ export async function listarTarefasDaSecao(sectionGid: string): Promise<TaskAsan
     offset = json.next_page?.offset;
   } while (offset);
   return tarefas;
+}
+
+/** Lista as subtarefas de uma tarefa (as tarefas reais sob o card da mentorada). */
+export async function listarSubtarefas(taskGid: string): Promise<TaskAsana[]> {
+  const resposta = await asanaFetch(
+    `/tasks/${encodeURIComponent(taskGid)}/subtasks?opt_fields=name,completed,completed_at,created_at&limit=100`,
+  );
+  if (!resposta.ok) {
+    throw new Error(`Asana: falha ao listar subtarefas (HTTP ${resposta.status}).`);
+  }
+  const json = (await resposta.json()) as { data: TaskAsana[] };
+  return json.data ?? [];
 }
 
 /**
