@@ -17,7 +17,7 @@ const h = vi.hoisted(() => ({
   enviarComRetry: vi.fn((_e: { numero: string; texto: string }) =>
     Promise.resolve({ ok: true, tentativas: 1 }),
   ),
-  compromissosDeHoje: vi.fn(() =>
+  proximosCompromissos: vi.fn(() =>
     Promise.resolve([] as { hora: string; titulo: string }[]),
   ),
 }));
@@ -44,7 +44,7 @@ vi.mock("@/lib/db/client", () => {
 });
 vi.mock("@/lib/whatsapp/envio", () => ({ enviarComRetry: h.enviarComRetry }));
 vi.mock("@/lib/integrations/agenda", () => ({
-  compromissosDeHoje: h.compromissosDeHoje,
+  proximosCompromissos: h.proximosCompromissos,
 }));
 
 import { GET } from "@/app/api/cron/briefing/route";
@@ -112,7 +112,7 @@ describe("GET /api/cron/briefing", () => {
 
   it("detecta, prioriza, envia e salva em briefings_enviados", async () => {
     h.porTabela.alunas = alunasComFuro();
-    h.compromissosDeHoje.mockResolvedValue([{ hora: "14:00", titulo: "Call 4E" }]);
+    h.proximosCompromissos.mockResolvedValue([{ hora: "14:00", titulo: "Call 4E" }]);
 
     const res = await chamar();
     expect(res.status).toBe(200);

@@ -8,7 +8,7 @@ import {
   gerarTextoBriefing,
   type Compromisso,
 } from "@/lib/briefing/priorizar";
-import { compromissosDeHoje } from "@/lib/integrations/agenda";
+import { proximosCompromissos } from "@/lib/integrations/agenda";
 import { enviarComRetry } from "@/lib/whatsapp/envio";
 import { normalizarTelefone } from "@/lib/matching/matcher";
 import {
@@ -74,7 +74,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     // Agenda do dia (contexto extra — nunca deve quebrar o briefing).
     let compromissos: Compromisso[] = [];
     try {
-      compromissos = await compromissosDeHoje();
+      compromissos = await proximosCompromissos();
     } catch (erro) {
       logarErro(erro, { rota, resumo: { etapa: "agenda" } });
     }

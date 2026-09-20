@@ -108,24 +108,24 @@ describe("gerarTextoBriefing", () => {
       3,
     );
     const texto = gerarTextoBriefing(top, [
-      { hora: "10:00", titulo: "Mentoria Paula" },
-      { hora: "15:00", titulo: "Call 4E" },
+      { hora: "22/09 10:00", titulo: "Mentoria Paula" },
+      { hora: "23/09 15:00", titulo: "Call 4E" },
     ]);
     expect(texto).toContain(
-      "Na sua agenda hoje: 2 compromissos — 10:00 Mentoria Paula; 15:00 Call 4E.",
+      "Suas próximas reuniões: 22/09 10:00 Mentoria Paula; 23/09 15:00 Call 4E.",
     );
     // agenda vem depois da pendência
-    expect(texto.indexOf("Fernanda")).toBeLessThan(texto.indexOf("agenda hoje"));
+    expect(texto.indexOf("Fernanda")).toBeLessThan(texto.indexOf("próximas reuniões"));
   });
 
   it("sem compromissos, não adiciona a seção de agenda", () => {
     const texto = gerarTextoBriefing([], []);
-    expect(texto).not.toContain("agenda hoje");
+    expect(texto).not.toContain("próximas reuniões");
   });
 
   it("tudo em dia mas com agenda → mostra os dois", () => {
-    const texto = gerarTextoBriefing([], [{ hora: "14:00", titulo: "Reunião X" }]);
+    const texto = gerarTextoBriefing([], [{ hora: "22/09 14:00", titulo: "Reunião X" }]);
     expect(texto).toContain("Tudo em dia");
-    expect(texto).toContain("Na sua agenda hoje: 1 compromisso — 14:00 Reunião X.");
+    expect(texto).toContain("Suas próximas reuniões: 22/09 14:00 Reunião X.");
   });
 });

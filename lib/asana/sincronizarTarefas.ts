@@ -19,8 +19,8 @@ import { acharAlunaPorNomePasta } from "@/lib/materiais";
 
 type SupabaseServer = ReturnType<typeof getServiceClient>;
 
-/** Nome da coluna do Asana que lista as mentoradas (fonte da verdade). */
-const SECAO_CONSULTORIA = "consultoria";
+/** Colunas do Asana que listam mentoradas (fonte da verdade). */
+const SECOES_MENTORADAS = ["consultoria", "mentoria"];
 
 /**
  * Apelidos de card → nome da aluna, confirmados pelo João (nomes divergem entre
@@ -107,13 +107,15 @@ export async function sincronizarTarefasAsana(): Promise<ResultadoSyncAsana> {
   const db = getServiceClient();
 
   const secoes = await listarSecoes(projectGid);
-  const consultoria = secoes.find(
-    (s) => s.name.trim().toLowerCase() === SECAO_CONSULTORIA,
+  const alvo = secoes.filter((s) =>
+    SECOES_MENTORADAS.includes(s.name.trim().toLowerCase()),
   );
-  if (!consultoria) {
-    throw new Error("Asana: coluna CONSULTORIA não encontrada no projeto.");
+  if (alvo.length === 0) {
+    throw new Error("Asana: nenhuma coluna CONSULTORIA/MENTORIA encontrada no projeto.");
   }
-  const cards = await listarTarefasDaSecao(consultoria.gid);
+  // Junta os cards de todas as colunas de mentorada (CONSULTORIA + MENTORIA).
+  const cards: TaskAsana[] = [];
+  for (const sec of alvo) cards.push(...(await listarTarefasDaSecao(sec.gid)));
 
   const { data, error } = await db
     .from("alunas")

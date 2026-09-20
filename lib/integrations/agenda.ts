@@ -112,3 +112,31 @@ export async function compromissosDeHoje(
     titulo: ev.summary ?? "(sem título)",
   }));
 }
+
+/**
+ * Próximas reuniões (COM horário) dos próximos `dias` dias — para o briefing do
+ * WhatsApp bater com a lista "Próximas reuniões" do site (antes o briefing só
+ * mostrava HOJE, então reuniões futuras apareciam no site e não no WhatsApp).
+ * Cada `hora` vem como "DD/MM HH:MM" (fuso SP), já que agora é multi-dia.
+ */
+export async function proximosCompromissos(
+  dias = 7,
+  max = 6,
+  agora: Date = new Date(),
+): Promise<Compromisso[]> {
+  const eventos = await proximosEventosAgenda(dias, 20, agora);
+  return eventos.slice(0, max).map((ev) => {
+    const d = new Date(ev.inicioIso);
+    const dia = d.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      timeZone: FUSO,
+    });
+    const hora = d.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: FUSO,
+    });
+    return { hora: `${dia} ${hora}`, titulo: ev.titulo };
+  });
+}

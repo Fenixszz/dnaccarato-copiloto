@@ -96,12 +96,9 @@ export function gerarTextoBriefing(
   }
 
   if (compromissos.length > 0) {
-    const n = compromissos.length;
     const itens = compromissos.map((c) => `${c.hora} ${c.titulo}`).join("; ");
     linhas.push("");
-    linhas.push(
-      `Na sua agenda hoje: ${n} ${n === 1 ? "compromisso" : "compromissos"} — ${itens}.`,
-    );
+    linhas.push(`Suas próximas reuniões: ${itens}.`);
   }
 
   if (avisoCredito !== null && avisoCredito !== "") {
