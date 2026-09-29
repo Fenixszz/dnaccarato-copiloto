@@ -6,6 +6,7 @@
 import Link from "next/link";
 import type { Dossie } from "@/lib/dossie";
 import { formatarData, formatarDataHora, formatarMoeda } from "@/lib/formato";
+import { EditarAluna } from "./editar-aluna";
 
 const CORES_STATUS: Record<string, string> = {
   pago: "bg-emerald-50 text-emerald-700",
@@ -64,6 +65,16 @@ export function DossieView({ dossie }: { dossie: Dossie }) {
           <span>{aluna.email ?? "sem e-mail"}</span>
           <span>{aluna.telefone ?? "sem telefone"}</span>
           <span>Cadastro: {formatarData(aluna.criado_em)}</span>
+        </div>
+        <div className="mt-3">
+          <EditarAluna
+            aluna={{
+              id: aluna.id,
+              nome: aluna.nome,
+              email: aluna.email,
+              telefone: aluna.telefone,
+            }}
+          />
         </div>
       </div>
 

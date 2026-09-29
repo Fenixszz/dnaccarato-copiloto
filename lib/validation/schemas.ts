@@ -297,3 +297,20 @@ export function extrairIdExterno(
       return null;
   }
 }
+
+// -----------------------------------------------------------------------------
+// Edição de aluna pelo dashboard (nome / e-mail / telefone)
+// -----------------------------------------------------------------------------
+/** Converte string vazia (ou só espaços) em null — campos opcionais de contato. */
+const vazioParaNulo = (v: unknown): unknown =>
+  typeof v === "string" && v.trim() === "" ? null : v;
+
+export const editarAlunaSchema = z.object({
+  nome: z.string().trim().min(1, "Nome é obrigatório").max(200),
+  email: z.preprocess(
+    vazioParaNulo,
+    z.string().trim().email("E-mail inválido").max(200).nullable(),
+  ),
+  telefone: z.preprocess(vazioParaNulo, z.string().trim().max(50).nullable()),
+});
+export type EditarAluna = z.infer<typeof editarAlunaSchema>;
