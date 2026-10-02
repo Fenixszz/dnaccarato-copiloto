@@ -37,7 +37,9 @@ export interface MetricasPainel {
   recebidoMesAnterior: number;
   /** Variação % do recebido vs. mês anterior; null se não dá pra comparar. */
   variacaoRecebidoPct: number | null;
+  /** Soma das cobranças NÃO pagas já emitidas: atrasadas + a vencer (pendentes). */
   emAberto: number;
+  /** Quantidade só das cobranças ATRASADAS (vencidas e não pagas). */
   qtdAtrasados: number;
   documentosPendentes: number;
   documentosRejeitados: number;
@@ -129,6 +131,9 @@ export function agregarPainel(
       }
     } else if (p.status === "atrasado") {
       atrasadas += 1;
+      emAberto += p.valor;
+    } else if (p.status === "pendente") {
+      // Cobrança emitida e ainda não paga (a vencer) — também é "em aberto".
       emAberto += p.valor;
     }
   }

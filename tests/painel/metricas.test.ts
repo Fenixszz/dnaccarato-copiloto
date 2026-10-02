@@ -40,21 +40,22 @@ describe("agregarPainel", () => {
     expect(m.variacaoRecebidoPct).toBe(50); // (150-100)/100
   });
 
-  it("soma o valor em aberto (atrasados) e conta a quantidade", () => {
+  it("em aberto = atrasados + a vencer (pendentes); qtdAtrasados conta só os atrasados", () => {
     const m = agregarPainel(
       {
         alunas: [],
         pagamentos: [
           { status: "atrasado", valor: 200, pago_em: null },
           { status: "atrasado", valor: 80, pago_em: null },
+          { status: "pendente", valor: 120, pago_em: null }, // emitida, a vencer
           { status: "pago", valor: 100, pago_em: "2026-08-01T10:00:00Z" },
         ],
         documentos: [],
       },
       AGORA,
     );
-    expect(m.emAberto).toBe(280);
-    expect(m.qtdAtrasados).toBe(2);
+    expect(m.emAberto).toBe(400); // 200 + 80 + 120
+    expect(m.qtdAtrasados).toBe(2); // só os atrasados
   });
 
   it("calcula a taxa de adimplência (pagas / (pagas + atrasadas))", () => {
